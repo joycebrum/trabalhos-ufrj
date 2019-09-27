@@ -5,53 +5,91 @@
 
 using namespace std;
 
-// --------------------------------------------------- Referentes ao trabalho de STREAM -------------------------------------------------------------
-template<typename Funcao, typename Vetor>
-constexpr operator | (Vetor&v, Funcao function) {
-	/*for(auto x : v) {
-		function(x);
-	}*/
-	auto resultado = 
-    is_same< int, decltype(function(*v.begin())) >::value;
-  
-	if (resultado == "true") {
-		return v;
-	}
-	// usar ifconstexpr 
-	// usar o invoke result para decidir se retorna o vetor ou se retorna void
+
+template<typename Vetor>
+auto firstElement(Vetor v) {
+	return 4;
 }
+
+template <bool N, typename T> 
+struct IfTrue {
+  typedef T tipo;
+};
+
+template <typename T> 
+struct IfTrue<false, T> {
+	typedef void tipo;
+};
+
+template<typename Funcao, typename Vetor>
+void stream (Vetor& v, Funcao function) {
+	for(auto x : v) {
+		function(x);
+	}
+}
+
+template<typename Funcao, typename Vetor>
+auto operator | (Vetor&v, Funcao function) {
+	constexpr auto resultado = 
+    is_same< bool, decltype(function(*v.begin())) >::value;
+  
+	if constexpr (true) {
+		vector<decltype(firstElement(v))> vetor = {};
+		for(auto x : v) {
+			if(function(x)) {
+				vetor.push_back(x);
+			}
+		}
+		return vetor;
+	}
+	else {
+		return stream(v, function);
+	}
+}
+
+/*
+template<typename Funcao, typename type, int n>
+auto operator | (type(& v)[n], Funcao function) {
+	constexpr auto resultado = 
+    is_same< bool, decltype(function(v[0])) >::value;
+  
+	cout << "Resultado: " << (resultado ? "True" : "False") << endl;
+  
+	if constexpr (resultado) {
+		return filter(v, function);
+		vector<decltype(function(v[0]))> vetor = {};
+		for(auto x : v) {
+			if(function(x)) {
+				vetor.push_back(x);
+			}
+		}
+		return vetor;
+	}
+	else {
+		stream(v, function);
+	}
+}*/
+
 void print( int x ) { cout << x << " "; }
-
-
-
-// --------------------------------------------------- Referentes ao trabalho de FILTER -------------------------------------------------------------
-
 
 template <typename T>
 ostream& operator << ( ostream& o, const vector<T>& v );
-
-/*
-template <class Function, typename tipo>
-vector<typename result_of < Function( tipo ) >::type > apply( const initializer_list<tipo>& v, Function f);
-
-template <class Function, typename tipo, int n>
-vector<typename result_of < Function( tipo ) >::type > apply(tipo(& v)[n], Function f);*/
 
 
 
 
 
 int main () {
-	/*int tab[10] =  { 1, 2, 3, 2, 3, 4, 6, 0, 1, 8 };
+	int tab[10] =  { 1, 2, 3, 2, 3, 4, 6, 0, 1, 8 };
 	vector<int> v{ 2 , 6, 8 };
-	tab | []( int x ) { cout << x*x << endl; };
-	tab | [ &v ]( int x ) { v.push_back( x ); };
+	//tab | []( int x ) { cout << x*x << endl; };
+	/*tab | [ &v ]( int x ) { v.push_back( x ); };
 	v | []( int x ) { cout << x*x << endl; };
 	v | &print;*/
 	
-	vector<int> v2{ 1, 3, 5 };
+	//vector<int> v2{ 1, 3, 5 };
 	
-	cout << (v2 | []( int x ) { return  x == 3;});
+	//cout << (v2 | []( int x ) { return  x == 3;});
 }
 
 // --------------------------------------------------- Referentes ao trabalho de FILTER -------------------------------------------------------------
