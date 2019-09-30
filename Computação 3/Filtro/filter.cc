@@ -4,22 +4,20 @@
 #include <functional>
 
 using namespace std;
-
-
-template<typename Vetor>
-auto firstElement(Vetor v) {
-	return 4;
+template <typename T>
+ostream& operator << ( ostream& o, const vector<T>& v ) {
+    o << "[ ";
+    for( auto x : v )
+        o << x << " ";
+        
+    return o << "]";
 }
+template<typename T, typename F> auto apply(const T& coll, F f) -> std::vector<decltype(f(*std::begin(coll)))>;
+template<typename T, typename F> auto apply( std::initializer_list<T> coll, F f) -> std::vector<decltype(f(*coll.begin()))>;
 
-template <bool N, typename T> 
-struct IfTrue {
-  typedef T tipo;
-};
-
-template <typename T> 
-struct IfTrue<false, T> {
-	typedef void tipo;
-};
+template<typename Vetor> auto firstElement(Vetor v) {
+	return *v.begin();
+}
 
 template<typename Funcao, typename Vetor>
 void stream (Vetor& v, Funcao function) {
@@ -29,11 +27,13 @@ void stream (Vetor& v, Funcao function) {
 }
 
 template<typename Funcao, typename Vetor>
-auto operator | (Vetor&v, Funcao function) {
-	constexpr auto resultado = 
-    is_same< bool, decltype(function(*v.begin())) >::value;
-  
-	if constexpr (true) {
+auto operator | (Vetor v, Funcao function) {
+		
+	if constexpr ( is_same< void, typename result_of < Funcao( decltype(*v.begin() ) ) >::type >::value ) {
+		stream(v, function);
+		return;
+	}
+	else if constexpr ( is_same< bool, typename result_of < Funcao( decltype(*v.begin() ) ) >::type >::value ) { 
 		vector<decltype(firstElement(v))> vetor = {};
 		for(auto x : v) {
 			if(function(x)) {
@@ -42,8 +42,8 @@ auto operator | (Vetor&v, Funcao function) {
 		}
 		return vetor;
 	}
-	else {
-		return stream(v, function);
+	else { 
+		return apply(v, function);
 	}
 }
 
@@ -51,14 +51,10 @@ auto operator | (Vetor&v, Funcao function) {
 template<typename Funcao, typename type, int n>
 auto operator | (type(& v)[n], Funcao function) {
 	constexpr auto resultado = 
-    is_same< bool, decltype(function(v[0])) >::value;
-  
-	cout << "Resultado: " << (resultado ? "True" : "False") << endl;
-  
+    is_same< bool, typename result_of < Funcao( type ) >::type >::value;
 	if constexpr (resultado) {
-		return filter(v, function);
-		vector<decltype(function(v[0]))> vetor = {};
-		for(auto x : v) {
+		vector<type> vetor = {};
+		for(type x : v) {
 			if(function(x)) {
 				vetor.push_back(x);
 			}
@@ -68,36 +64,39 @@ auto operator | (type(& v)[n], Funcao function) {
 	else {
 		stream(v, function);
 	}
-}*/
-
-void print( int x ) { cout << x << " "; }
-
-template <typename T>
-ostream& operator << ( ostream& o, const vector<T>& v );
-
-
-
+}
+*/
 
 
 int main () {
-	int tab[10] =  { 1, 2, 3, 2, 3, 4, 6, 0, 1, 8 };
-	vector<int> v{ 2 , 6, 8 };
-	//tab | []( int x ) { cout << x*x << endl; };
-	/*tab | [ &v ]( int x ) { v.push_back( x ); };
-	v | []( int x ) { cout << x*x << endl; };
-	v | &print;*/
-	
-	//vector<int> v2{ 1, 3, 5 };
-	
-	//cout << (v2 | []( int x ) { return  x == 3;});
+	map<string,string> v = { { "a", "1" }, { "b", "2" }, { "c", "3" }, { "d", "4" }, { "e", "5" } };
+	v | []( auto x ){ return pair{ x.first, stod( x.second ) }; } /*| []( auto p ) { cout << p.second + 1.1 << " "; }*/;
+
 }
 
-// --------------------------------------------------- Referentes ao trabalho de FILTER -------------------------------------------------------------
-template <typename T>
-ostream& operator << ( ostream& o, const vector<T>& v ) {
-    o << "[ ";
-    for( auto x : v )
-        o << x << " ";
-        
-    return o << "]";
+template<typename T, typename F>
+auto apply(const T& coll, F f) -> std::vector<decltype(f(*std::begin(coll)))>
+{
+  std::vector<decltype(f(*std::begin(coll)))> res;
+
+  for (auto x : coll) {
+    res.push_back(f(x));
+  }
+
+  return res;
 }
+
+template<typename T, typename F>
+auto apply( std::initializer_list<T> coll, F f) -> std::vector<decltype(f(*coll.begin()))>
+{
+  std::vector<decltype(f(*coll.begin()))> res;
+
+  for (auto x : coll) {
+    res.push_back(f(x));
+  }
+
+  return res;
+}
+
+
+
