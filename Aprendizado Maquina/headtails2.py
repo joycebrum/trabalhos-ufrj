@@ -15,7 +15,7 @@ def rodada(jogadoresAtivos, quant):
     global jogadores
     for jogador in jogadoresAtivos:
         for adversario in jogadoresAtivos:
-            if jogador == adversario:
+            if jogador >= adversario:
                 continue
             choice = flipTheCoin()
             flip = flipTheCoin()
@@ -25,6 +25,8 @@ def rodada(jogadoresAtivos, quant):
             else:
                 jogadores[adversario] += 100
                 jogadores[jogador] -= 100
+            jogadoresAtivos[jogador] = jogadores[jogador]
+            jogadoresAtivos[adversario] = jogadores[adversario]
                 
             
 def removeJogadoresSemRecursos(jogs):
@@ -32,20 +34,31 @@ def removeJogadoresSemRecursos(jogs):
     for key in jogs:
         if jogs[key] > 0:
             jogsnovo.update({key: jogs[key]})
+
     return jogsnovo
 
 def game():
     global jogadores
-    jogadores = inicializa()
+    jogadores = inicializa(500)
     jogadoresAtivos = jogadores
     for i in range(5000):
         rodada(jogadoresAtivos, 10)
         jogadoresAtivos = removeJogadoresSemRecursos(jogadoresAtivos)
+        if (len(jogadoresAtivos)<2):
+            break
+    max = 0
+    for jogador in jogadores:
+        if jogadores[jogador] > max:
+            max = jogadores[jogador]
+    return "Maximo: " + str(max)
 
-    return jogadores
+    for jogador in jogadores:
+        val = jogadores[jogador] / max
+        if val 0.1:
+            
 
-def inicializa():
+def inicializa(num):
     global jogadores
-    for i in range(2500):
+    for i in range(num):
         jogadores.update({i:10000})
     return jogadores
