@@ -8,7 +8,26 @@
 
 using namespace std;
 
-class Var;
+class Undefined;
+class Object;
+class Var {
+	public:
+	// Construtores
+		Var();
+		Var(int n);
+		Var(double n);
+		Var(string n);
+	// Operadores
+		Var operator = ( int n );
+		Var operator = ( double n );
+		Var operator = ( string n );	
+		Var operator = ( Object* o);
+		Var operator [] (string campo) const;
+	// Metodos
+		virtual void print (ostream& o);
+	private:
+		shared_ptr<Undefined> valor;
+};
 ostream& operator << (ostream& o, Var var);
 
 class Erro {
@@ -26,6 +45,7 @@ private:
 class Undefined {
 	public:
 		virtual void print (ostream& o) {}
+		virtual Var operator [] (string campo) const {  return Var(); }
 };
 
 class Int: public Undefined {
@@ -60,51 +80,46 @@ class String: public Undefined {
 
 class Object: public Undefined {
 	public:
-		Object () {}
-		virtual void print (ostream& o) {
-			//o << n;
-		}
+		Object (): n() {}
+		virtual void print (ostream& o) { /*o << n;*/ }
+		virtual Var operator [](string campo) { return n[campo]; }
 	private: 
 	// usar std::variant
-		map<string, int> n;
+		map<string, Var> n;
 };
 
-class Var {
-	public:
-		Var(): valor( new Undefined() ) {}
-		Var(int n): valor( new Int(n) ) {}
-		Var(double n): valor( new Double(n) ) {}
-		Var(string n): valor( new String(n) ) {}
-
-		Var operator = ( int n ) {
-			valor = shared_ptr<Undefined>( new Int( n ) );
-			return *this;
-		}
-		Var operator = ( double n ) {
-			valor = shared_ptr<Undefined>( new Double( n ) );
-			return *this;
-		}
-		Var operator = ( string n ) {
-			valor = shared_ptr<Undefined>( new String( n ) );
-			return *this;
-		}
-		
-		Var operator = ( Object* o) {
-			valor = shared_ptr<Undefined>( o );
-			return *this;
-		}
-		
-		virtual void print (ostream& o) {
-			(*valor).print(o);
-		}
-	private:
-		shared_ptr<Undefined> valor;
-};
+Var::Var(): valor( new Undefined() ) {};
+Var::Var(int n): valor( new Int(n) ) {};
+Var::Var(double n): valor( new Double(n) ) {};
+Var::Var(string n): valor( new String(n) ) {};
+Var Var::operator = ( int n ) { valor = shared_ptr<Undefined>( new Int( n ) ); 	return *this; };
+Var Var::operator = ( double n ) { valor = shared_ptr<Undefined>( new Double( n ) ); return *this; };
+Var Var::operator = ( string n ) { valor = shared_ptr<Undefined>( new String( n ) ); return *this; };
+Var Var::operator = ( Object* o) { valor = shared_ptr<Undefined>( o ); return *this; };
+Var Var::operator [] (string campo) const { return (*valor)[campo]; };
+void Var::print (ostream& o) { (*valor).print(o); };
 
 ostream& operator << (ostream& o, Var var) {
 	var.print(o);
 	return o;
 }
+
+
+Var print( const Var& o ) {
+  cout << "{ nome: " << o["nome"]
+       << ", idade: " << o["idade"]( o )
+       << ", nascimento: " << o["nascimento"]
+       << ", print: " << o["print"] 
+       << ", atr: " << o["atr"] 
+       << " }" << endl;
+       
+  return Var();     
+}
+
+void imprime( Var v ) {
+    //v["print"]( v );
+}
+
 /*
 class Var;
 class Undefined;
@@ -134,20 +149,16 @@ private:
 };
 * */
 int main() {
-  Var a, b;
-  Var c = 5;
-  
-  cout << a << endl; // saída: "undefined"
-  a = 1;
-  cout << a << endl; // saída: 1
-  a = "hello";
-  cout << a << endl; // saída: hello
-  
-  a = new Object();
-  //a["atr"] = 9;
-  //a["metodo"] = []( auto x ){ return x*x; };
-  b = 4;
-  //cout << a["metodo"]( b ) << endl; // Saída: 16;
+	Var a, b = 10;
+	cout << a << " " << b << endl;
+	a = 3.14;
+	b = "uma string";
+	cout << a << " " << b << endl;
+	
+	map<string, Var> mapa = map<string, Var>();
+	//mapa.insert("porta", 3);
+	mapa["porta"]=a;
+	cout << mapa["porta"]<<endl;
 }
 
 
