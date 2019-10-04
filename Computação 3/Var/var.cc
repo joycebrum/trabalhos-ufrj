@@ -88,6 +88,11 @@ class Object: public Undefined {
 		map<string, Var> n;
 };
 
+class Function: public Undefined {
+	public: 
+		Function() {}
+};
+
 Var::Var(): valor( new Undefined() ) {};
 Var::Var(int n): valor( new Int(n) ) {};
 Var::Var(double n): valor( new Double(n) ) {};
@@ -107,7 +112,7 @@ ostream& operator << (ostream& o, Var var) {
 
 Var print( const Var& o ) {
   cout << "{ nome: " << o["nome"]
-       << ", idade: " << o["idade"]( o )
+       //<< ", idade: " << o["idade"]( o )
        << ", nascimento: " << o["nascimento"]
        << ", print: " << o["print"] 
        << ", atr: " << o["atr"] 
