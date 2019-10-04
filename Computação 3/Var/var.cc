@@ -92,7 +92,39 @@ class Function: public Undefined {
 	public: 
 		Function() {}
 };
+class AbstractPair {
+public:
+  virtual ~AbstractPair() {}
 
+  virtual void imprime( ostream& o ) const = 0; 
+};
+
+template <typename A, typename B>
+class ImplPair: public AbstractPair {
+public:
+  ImplPair( const A& a, const B& b ): a(a), b(b) {}
+
+  virtual void imprime( ostream& o ) const {
+    o << a << " = " << b;
+  }
+  
+private:
+  A a;
+  B b;
+};
+
+class Pair {
+public:
+  template <typename A, typename B>
+  Pair( A a, B b ): ap( new ImplPair{ a, b } ) {}
+  
+  void imprime( ostream& o ) const {
+    ap->imprime( o );
+  }
+  
+private:
+  shared_ptr<AbstractPair> ap;
+};
 Var::Var(): valor( new Undefined() ) {};
 Var::Var(int n): valor( new Int(n) ) {};
 Var::Var(double n): valor( new Double(n) ) {};
