@@ -28,7 +28,7 @@ private:
 class Pair {
 public:
   template <typename A, typename B>
-  Pair( A a, B b ): ap( new ImplPair( a, b ) ) {}
+  Pair( A a, B b ): ap( new ImplPair{ a, b } ) {}
   
   void imprime( ostream& o ) const {
     ap->imprime( o );
