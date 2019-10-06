@@ -17,43 +17,76 @@ class Var {
 		Var(int n);
 		Var(double n);
 		Var(string n);
+		Var(const char *c);
+		Var(const char c);
+		Var(bool b);
+		Var(vector<Var> v);
+		template<typename Func>
+		Var(Func f);
+		Var(map<string, Var> mapa);
 	// Operadores
+		Var operator = ( Var v )  { valor = shared_ptr( v.valor ); return *this; };
 		Var operator = ( int n );
 		Var operator = ( double n );
-		Var operator = ( string n );	
+		Var operator = ( string n );
+		Var operator = (const char* c);	
+		Var operator = (const char c);	
+		Var operator = (bool c);	
+		Var operator = (vector<Var> c);	
 		Var operator = ( Object* o);
+		template<typename Func> Var operator = ( Func f);
+		Var operator = (map<string,Var> mapa);
+		Var operator () (Var arg1) const;
 		Var operator [] (string campo) const;
+		Var& operator [] (string campo);
+		Var operator + (Var var2) const;
 	// Metodos
+		Undefined* getValor() { return &(*valor); };
+		
 		virtual void print (ostream& o);
+	// Classes
+	class Erro {
+	public:
+	  Erro( string msg ): msg(msg) {}
+	  
+	  string operator()() const {
+		return msg;
+	  }
+	  
+	private:
+	  string msg;
+	};
 	private:
 		shared_ptr<Undefined> valor;
 };
 ostream& operator << (ostream& o, Var var);
 
-class Erro {
-public:
-  Erro( string msg ): msg(msg) {}
-  
-  string operator()() const {
-    return msg;
-  }
-  
-private:
-  string msg;
-};
-
 class Undefined {
 	public:
-		virtual void print (ostream& o) {}
-		virtual Var operator [] (string campo) const {  return Var(); }
+		virtual void print (ostream& o) { o << "undefined"; }
+		virtual Var& get_value (string campo)  { cout << "aqui"; throw Var::Erro("Erro fatal: Essa variável não é um objeto");  }
+		
+		// Soma
+		virtual Var sel_soma( Undefined* arg2 ) const { return Var(); }
+		virtual Var soma( int arg2 ) const { return Var(); }
+		virtual Var soma( double arg2 ) const { return Var(); }
+		virtual Var soma(const char arg2) const { return Var(); }
+		virtual Var soma(string arg2) const { return Var(); }
+		
+		// Operadores
+		virtual Var operator () (Var arg1) const  { throw Var::Erro("Essa variável não pode ser usada como função"); }
+		Var operator + (Undefined* arg2) { return this->sel_soma(arg2); }
+		
 };
 
 class Int: public Undefined {
 	public:
 		Int( int n ):n(n) {}
-		virtual void print (ostream& o) {
-			o << n; 
-		}
+		virtual void print (ostream& o) {	o << n; }
+		virtual Var sel_soma( Undefined* arg1 ) const { return arg1->soma( n ); }
+		virtual Var soma( int arg2 ) const { return n + arg2; }
+		virtual Var soma( double arg2 ) const { return n + arg2; }
+		
 	private:
 		int n;
 };
@@ -61,90 +94,93 @@ class Int: public Undefined {
 class Double: public Undefined {
 	public:
 		Double( double n ):n(n) {}
-		virtual void print (ostream& o) {
-			o << n; 
-		}
+		virtual void print (ostream& o) { o << n; }
+		virtual Var sel_soma(Undefined* arg2 ) const { return arg2->soma(n); }
+		virtual Var soma( int arg1 ) const { return n + arg1; }
+		virtual Var soma( double arg1 ) const { return n + arg1; }
 	private:
 		double n;
 };
 
 class String: public Undefined {
 	public:
-		String (string s): s(s) {}
-		virtual void print (ostream& o) {
-			o << s;
-		}
+		String (string s): n(s) {}
+		String (const char* c): n(c) {}
+		virtual void print (ostream& o) { o << n; }
+		virtual Var sel_soma(Undefined* arg2) const { return arg2->soma(n); }
+		virtual Var soma (const char arg1) const { return n + arg1; } 
+		virtual Var soma (string arg1) const { return n + arg1; } 
 	private: 
-		string s;
+		string n;
 };
 
 class Object: public Undefined {
 	public:
-		Object (): n() {}
+		Object (map<string,Var> mapa): n(mapa) {}
 		virtual void print (ostream& o) { /*o << n;*/ }
-		virtual Var operator [](string campo) { return n[campo]; }
+		Var& get_value(string campo) override { return n[campo]; }
 	private: 
 	// usar std::variant
 		map<string, Var> n;
 };
+class Bool: public Undefined {
+	public:
+		Bool(bool b): n(b) {}
+		virtual void print(ostream& o) {o << n;}
+	private:
+		bool n;
+};
+
+class Char: public Undefined {
+	public:
+		Char(const char c): n(c) {}
+		virtual void print(ostream& o) {o << n;}
+	private:
+		char n;
+};
+class Array: public Undefined {
+	public:
+		Array(vector<Var> v): n(v) {}
+		virtual void print(ostream& o) {
+			for ( auto x : n ) {
+				o << x + ", ";
+			}
+		}
+	private:
+		vector<Var> n;
+};
+
+Var newObject() {
+	map<string, Var> mapa;
+	Var obj = mapa;
+	return obj;
+}
+class AbstractFunction {
+	public:
+		virtual ~AbstractFunction(){}
+		virtual Var operator () (Var arg1) const { return Var(); }
+};
+template<typename Func>
+class ImplFunction: public AbstractFunction {
+	public:
+		ImplFunction(const Func& f): f(f) {}
+		virtual Var operator () (Var arg1) const { return f(arg1); }
+	private:
+		Func f;
+};
 
 class Function: public Undefined {
-	public: 
-		Function() {}
+	public:
+		template<typename Func>
+		Function(Func f): af(new ImplFunction{f} ) {}
+		Var operator () (Var arg1) const { return (*af)(arg1); }
+	private:
+		shared_ptr<AbstractFunction> af;
 };
-class AbstractPair {
-public:
-  virtual ~AbstractPair() {}
-
-  virtual void imprime( ostream& o ) const = 0; 
-};
-
-template <typename A, typename B>
-class ImplPair: public AbstractPair {
-public:
-  ImplPair( const A& a, const B& b ): a(a), b(b) {}
-
-  virtual void imprime( ostream& o ) const {
-    o << a << " = " << b;
-  }
-  
-private:
-  A a;
-  B b;
-};
-
-class Pair {
-public:
-  template <typename A, typename B>
-  Pair( A a, B b ): ap( new ImplPair{ a, b } ) {}
-  
-  void imprime( ostream& o ) const {
-    ap->imprime( o );
-  }
-  
-private:
-  shared_ptr<AbstractPair> ap;
-};
-Var::Var(): valor( new Undefined() ) {};
-Var::Var(int n): valor( new Int(n) ) {};
-Var::Var(double n): valor( new Double(n) ) {};
-Var::Var(string n): valor( new String(n) ) {};
-Var Var::operator = ( int n ) { valor = shared_ptr<Undefined>( new Int( n ) ); 	return *this; };
-Var Var::operator = ( double n ) { valor = shared_ptr<Undefined>( new Double( n ) ); return *this; };
-Var Var::operator = ( string n ) { valor = shared_ptr<Undefined>( new String( n ) ); return *this; };
-Var Var::operator = ( Object* o) { valor = shared_ptr<Undefined>( o ); return *this; };
-Var Var::operator [] (string campo) const { return (*valor)[campo]; };
-void Var::print (ostream& o) { (*valor).print(o); };
-
-ostream& operator << (ostream& o, Var var) {
-	var.print(o);
-	return o;
-}
-
 
 Var print( const Var& o ) {
   cout << "{ nome: " << o["nome"]
-       //<< ", idade: " << o["idade"]( o )
+       << ", idade: " << o["idade"]( o )
        << ", nascimento: " << o["nascimento"]
        << ", print: " << o["print"] 
        << ", atr: " << o["atr"] 
@@ -154,76 +190,73 @@ Var print( const Var& o ) {
 }
 
 void imprime( Var v ) {
-    //v["print"]( v );
+    v["print"]( v );
 }
 
-/*
-class Var;
-class Undefined;
-
-class Int: public Undefined {
-public:
-  Int( int n ):n(n) {}
-  // Nessa chamada de sel_soma já sabemos que n é int
-  virtual Var sel_soma( Undefined* arg1 ) const { arg1->soma( n ); }
-  virtual Var soma( int arg2 ) const { return n + arg2; }
-  virtual Var soma( double arg2 ) const { return n + arg2; }
-  int value() const { return n; }
-private:
-  int n;
-};
-
-class String: public Undefined {
-public:
-  String( string st ): st(st) {}
+int main() try {     
   
-	virtual Var sel_soma( Undefined* arg1 ) const { arg1->soma( st ); }
-  virtual Var soma( string arg2 ) const { return st + arg2; }
-  virtual Var soma( char arg2 ) const { return st + arg2; }
-  string value() const { return st; }
-private:
-  string st;
-};
-* */
-int main() {
-	Var a, b = 10;
-	cout << a << " " << b << endl;
-	a = 3.14;
-	b = "uma string";
-	cout << a << " " << b << endl;
-	
-	map<string, Var> mapa = map<string, Var>();
-	//mapa.insert("porta", 3);
-	mapa["porta"]=a;
-	cout << mapa["porta"]<<endl;
+		
+	Var a, b;
+	a = 10.1;
+	b = []( auto x ){ return x + x; };
+	cout << b( a ) << " ";
+	cout << b( "oba" ) << " ";
+	cout << b( 'X' ) << " ";
+	//cout << b( true );
+	//'"20.2 obaoba XX undefined"
+
+	/*Var a = newObject();
+	Var b = "José", c = "Maria";
+	a["nome"] = b + ' ' + c;
+	a["idade"] = []( auto v ) { return 2019 - v["nascimento"]; };
+	a["nascimento"] = 1990;
+	a["print"] = &print;
+	b = a;
+	imprime( a );
+	a["nascimento"] = 2001;
+	imprime( a );
+	imprime( b );*/
+
+  return 0;
+} catch( Var::Erro e ) {
+  cout << "Erro fatal: " << e() << endl;
 }
 
+Var::Var(): valor( new Undefined() ) {};
+Var::Var(int n): valor( new Int(n) ) {};
+Var::Var(double n): valor( new Double(n) ) {};
+Var::Var(string n): valor( new String(n) ) {};
+Var::Var(const char* c): valor(new String(c)){};
+Var::Var(const char c): valor(new Char(c) ) {};
+Var::Var(bool b): valor( new Bool(b) ){};
+Var::Var(vector<Var> v): valor ( new Array(v) ) {};
+Var::Var(map<string, Var>mapa): valor(new Object(mapa)) {};
+template<typename Func>
+Var::Var( Func f): valor (new Function(f)) {};
+//operadores;
+Var Var::operator = ( int n ) { valor = shared_ptr<Undefined>( new Int( n ) ); 	return *this; };
+Var Var::operator = ( double n ) { valor = shared_ptr<Undefined>( new Double( n ) ); return *this; };
+Var Var::operator = ( string n ) { valor = shared_ptr<Undefined>( new String( n ) ); return *this; };
+Var Var::operator = ( Object* o) { valor = shared_ptr<Undefined>( o ); return *this; };
+Var Var::operator = ( const char *c ) { valor = shared_ptr<Undefined>( new String(c) ); return *this; };
+Var Var::operator = ( const char c ) { valor = shared_ptr<Undefined>( new Char(c) ); return *this; };
+Var Var::operator = ( bool c ) { valor = shared_ptr<Undefined>( new Bool(c) ); return *this; };
+Var Var::operator = ( vector<Var> c ) { valor = shared_ptr<Undefined>( new Array(c) ); return *this; };
+Var Var::operator = (map<string,Var> mapa) { valor = shared_ptr<Undefined>( new Object(mapa) ); return *this; };
+Var& Var::operator [] (string campo) { return (*valor).get_value(campo); };
+Var Var::operator [] (string campo) const { return (*valor).get_value(campo); };
+template<typename Func>
+Var Var::operator = ( Func f) { valor = shared_ptr<Undefined>(new Function(f)); return *this;};
+Var Var::operator () (Var arg1) const { return (*valor)(arg1); };
+Var Var::operator + (Var var2) const {return *valor + var2.getValor();};
+// funções
+void Var::print (ostream& o) { (*valor).print(o); };
 
-/*
-class Var {
-public:
-  Var(): valor( new Undefined() ) {}
+ostream& operator << (ostream& o, Var var) {
+	var.print(o);
+	return o;
+}
 
-  Var operator = ( int n ) {
-    valor = shared_ptr<Undefined>( new Int( n ) );
-  }
-  Var operator = ( double n ) {
-    valor = shared_ptr<Undefined>( new Double( n ) );
-  }
-private:
-  shared_ptr<Undefined> valor;
-};
-class Undefined {
-public:
-	Undefined() {}
-  virtual Var sel_soma( Undefined* arg1 ) const { return Var(); }
-  virtual Var soma( int arg2 ) const { return Var(); }
-  virtual Var soma( double arg2 ) const { return Var(); }
-  virtual Var soma( char arg2 ) const { return Var(); }
-  virtual Var soma( bool arg2 ) const { return Var(); }
-  virtual Var soma( string arg2 ) const { return Var(); }  
-};
-*/
 
 // Os operadores abaixo podem ser implementados utilizando os operadores !, || e <
 /*
