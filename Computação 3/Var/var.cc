@@ -40,6 +40,8 @@ class Var {
 		Var operator [] (string campo) const;
 		Var& operator [] (string campo);
 		Var operator + (Var var2) const;
+		Var operator - (Var var2) const;
+		Var operator * (Var var2) const;
 	// Metodos
 		Undefined* getValor() { return &(*valor); };
 		
@@ -60,6 +62,8 @@ class Var {
 		shared_ptr<Undefined> valor;
 };
 ostream& operator << (ostream& o, Var var);
+Var operator - (int arg1, Var arg2);
+Var operator - (Var arg1, int arg2);
 
 class Undefined {
 	public:
@@ -68,14 +72,27 @@ class Undefined {
 		
 		// Soma
 		virtual Var sel_soma( Undefined* arg2 ) const { return Var(); }
-		virtual Var soma( int arg2 ) const { return Var(); }
-		virtual Var soma( double arg2 ) const { return Var(); }
-		virtual Var soma(const char arg2) const { return Var(); }
-		virtual Var soma(string arg2) const { return Var(); }
+		virtual Var soma( int arg1 ) const { return Var(); }
+		virtual Var soma( double arg1 ) const { return Var(); }
+		virtual Var soma(const char arg1) const { return Var(); }
+		virtual Var soma(string arg1) const { return Var(); }
+		
+		//Subtracao
+		virtual Var sel_sub( Undefined* arg2 ) const { return Var(); }
+		virtual Var sub( int arg1 ) const { return Var(); }
+		virtual Var sub( double arg1 ) const { return Var(); }
+		virtual Var sub(const char arg1) const { return Var(); }
+		
+		//Multiplicacao
+		virtual Var sel_mul(Undefined* arg2 ) const { return Var(); }
+		virtual Var mul( int arg1 ) const { return Var(); }
+		virtual Var mul( double arg1 ) const { return Var(); }
 		
 		// Operadores
 		virtual Var operator () (Var arg1) const  { throw Var::Erro("Essa variável não pode ser usada como função"); }
 		Var operator + (Undefined* arg2) { return this->sel_soma(arg2); }
+		Var operator - (Undefined* arg2) { return this->sel_sub(arg2); }
+		Var operator * (Undefined* arg2) { return this->sel_mul(arg2); }
 		
 };
 
@@ -83,9 +100,21 @@ class Int: public Undefined {
 	public:
 		Int( int n ):n(n) {}
 		virtual void print (ostream& o) {	o << n; }
-		virtual Var sel_soma( Undefined* arg1 ) const { return arg1->soma( n ); }
-		virtual Var soma( int arg2 ) const { return n + arg2; }
-		virtual Var soma( double arg2 ) const { return n + arg2; }
+		//soma
+		virtual Var sel_soma( Undefined* arg2 ) const { return arg2->soma( n ); }
+		virtual Var soma( int arg1 ) const { return n + arg1; }
+		virtual Var soma( double arg1 ) const { return n + arg1; }
+		virtual Var soma( const char arg1 ) const { return n + arg1; }
+		//sub
+		virtual Var sel_sub(Undefined* arg2) const { return arg2->sub(n); }
+		virtual Var sub( int arg1 ) const { return arg1 - n; }
+		virtual Var sub( double arg1 ) const { return arg1 - n; }
+		virtual Var sub(const char arg1) const { return arg1 - n; }
+		//mul
+		virtual Var sel_mul(Undefined* arg2 ) const { return arg2->mul(n); }
+		virtual Var mul( int arg1 ) const { return arg1 * n; }
+		virtual Var mul( double arg1 ) const { return arg1 * n; }
+		
 		
 	private:
 		int n;
@@ -98,6 +127,16 @@ class Double: public Undefined {
 		virtual Var sel_soma(Undefined* arg2 ) const { return arg2->soma(n); }
 		virtual Var soma( int arg1 ) const { return n + arg1; }
 		virtual Var soma( double arg1 ) const { return n + arg1; }
+		//sub
+		virtual Var sel_sub(Undefined* arg2) const { return arg2->sub(n); }
+		virtual Var sub( int arg1 ) const { return arg1 - n; }
+		virtual Var sub( double arg1 ) const { return arg1 - n;  }
+		virtual Var sub(const char arg1) const { return arg1 - n;  }
+		//mul
+		virtual Var sel_mul(Undefined* arg2 ) const { return arg2->mul(n); }
+		virtual Var mul( int arg1 ) const { return arg1 * n; }
+		virtual Var mul( double arg1 ) const { return arg1 * n; }
+		
 	private:
 		double n;
 };
@@ -108,8 +147,8 @@ class String: public Undefined {
 		String (const char* c): n(c) {}
 		virtual void print (ostream& o) { o << n; }
 		virtual Var sel_soma(Undefined* arg2) const { return arg2->soma(n); }
-		virtual Var soma (const char arg1) const { return n + arg1; } 
-		virtual Var soma (string arg1) const { return n + arg1; } 
+		virtual Var soma (const char arg1) const { return arg1 + n; } 
+		virtual Var soma (string arg1) const { return arg1 + n; } 
 	private: 
 		string n;
 };
@@ -131,10 +170,14 @@ class Bool: public Undefined {
 		bool n;
 };
 
+
 class Char: public Undefined {
 	public:
 		Char(const char c): n(c) {}
 		virtual void print(ostream& o) {o << n;}
+		virtual Var sel_soma(Undefined* arg2) const { return arg2->soma(n); }
+		virtual Var soma (const char arg1) const { return arg1 + n; } 
+		virtual Var soma (string arg1) const { return arg1 + n; } 
 	private:
 		char n;
 };
@@ -174,6 +217,7 @@ class Function: public Undefined {
 		template<typename Func>
 		Function(Func f): af(new ImplFunction{f} ) {}
 		Var operator () (Var arg1) const { return (*af)(arg1); }
+		virtual void print(ostream& o) { o << "function"; }
 	private:
 		shared_ptr<AbstractFunction> af;
 };
@@ -194,18 +238,8 @@ void imprime( Var v ) {
 }
 
 int main() try {     
-  
-		
-	Var a, b;
-	a = 10.1;
-	b = []( auto x ){ return x + x; };
-	cout << b( a ) << " ";
-	cout << b( "oba" ) << " ";
-	cout << b( 'X' ) << " ";
-	//cout << b( true );
-	//'"20.2 obaoba XX undefined"
 
-	/*Var a = newObject();
+	Var a = newObject();
 	Var b = "José", c = "Maria";
 	a["nome"] = b + ' ' + c;
 	a["idade"] = []( auto v ) { return 2019 - v["nascimento"]; };
@@ -215,7 +249,7 @@ int main() try {
 	imprime( a );
 	a["nascimento"] = 2001;
 	imprime( a );
-	imprime( b );*/
+	imprime( b );
 
   return 0;
 } catch( Var::Erro e ) {
@@ -249,6 +283,8 @@ template<typename Func>
 Var Var::operator = ( Func f) { valor = shared_ptr<Undefined>(new Function(f)); return *this;};
 Var Var::operator () (Var arg1) const { return (*valor)(arg1); };
 Var Var::operator + (Var var2) const {return *valor + var2.getValor();};
+Var Var::operator - (Var var2) const {return *valor - var2.getValor();};
+Var Var::operator * (Var var2) const {return *valor * var2.getValor();};
 // funções
 void Var::print (ostream& o) { (*valor).print(o); };
 
@@ -257,6 +293,14 @@ ostream& operator << (ostream& o, Var var) {
 	return o;
 }
 
+Var operator - (int arg1, Var arg2) {
+	Var argv = arg1;
+	return argv - arg2;
+}
+Var operator - (Var arg1, int arg2) {
+	Var argv= arg2;
+	return arg1 - argv;
+}
 
 // Os operadores abaixo podem ser implementados utilizando os operadores !, || e <
 /*
