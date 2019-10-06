@@ -156,7 +156,7 @@ class String: public Undefined {
 class Object: public Undefined {
 	public:
 		Object (map<string,Var> mapa): n(mapa) {}
-		virtual void print (ostream& o) { /*o << n;*/ }
+		virtual void print (ostream& o) { o << "object"; }
 		Var& get_value(string campo) override { return n[campo]; }
 	private: 
 	// usar std::variant
@@ -239,17 +239,20 @@ void imprime( Var v ) {
 
 int main() try {     
 
-	Var a = newObject();
-	Var b = "José", c = "Maria";
-	a["nome"] = b + ' ' + c;
-	a["idade"] = []( auto v ) { return 2019 - v["nascimento"]; };
-	a["nascimento"] = 1990;
-	a["print"] = &print;
-	b = a;
-	imprime( a );
-	a["nascimento"] = 2001;
-	imprime( a );
-	imprime( b );
+	Var a, b;
+a = newObject();
+a["init"] = []( auto x ) { x["nome"] = "Manoel";
+                           x["idade"] = []( auto v ) { return 2019 - v["nascimento"]; };
+                           x["nascimento"] = 1987;
+                           x["print"] = &print;
+                           return x; };
+b = [a]( auto x ){ return x( a ); };
+a["funcao"] = b;
+b = &print;
+a["funcao"]( a["init"] );
+a["atr"] = a["init"]( newObject() );
+a["funcao"]( b );
+imprime( a["atr"] );
 
   return 0;
 } catch( Var::Erro e ) {
