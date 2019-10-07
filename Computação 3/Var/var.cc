@@ -242,7 +242,7 @@ class Object: public Undefined {
 class Bool: public Undefined {
 	public:
 		Bool(bool b): n(b) {}
-		virtual void print(ostream& o) {o << n;}
+		virtual void print(ostream& o) {o << (n ? "true":"false");}
 		virtual Var soma( int arg1 ) const { return Var(arg1 + n); }
 		virtual Var soma( double arg1 ) const { return Var(arg1 + n); }
 		//log
@@ -330,7 +330,6 @@ void imprime( Var v ) {
 int main() try {     
 Var a[5] = { true, 'X', 2, 2.1, "abracadabra" };
 Var b = 200, c = 300.1, d = "palavra ";
-
 cout << (a[0] && true) << endl;
 for( auto& x: a ) {
   cout << x+b << "," << x+c << "," << x+d << "," << 3 / x << "," << 1.1 * x << ","
