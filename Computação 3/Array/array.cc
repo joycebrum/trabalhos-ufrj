@@ -10,96 +10,109 @@ using namespace std;
 class Var {
 public:
   // === Exceções ==========
-  class Erro {
-  public:
-    Erro( string msg ): msg(msg) {}
+	class Erro {
+		public:
+			Erro( string msg ): msg(msg) {}
     
-    string operator()() const {
-      return msg;
-    }
-    
-  private:
-    string msg;
-  };
+			string operator()() const {
+				return msg;
+			}
+			
+	private:
+			string msg;
+	};
 
-  enum TYPE { UNDEFINED = 0, CHAR, BOOL, INT, DOUBLE, STRING, OBJECT, FUNCTION, ARRAY }; 
+	enum TYPE { UNDEFINED = 0, CHAR, BOOL, INT, DOUBLE, STRING, OBJECT, FUNCTION, ARRAY }; 
     
-  class Undefined {
-  public:
-    Undefined( TYPE type = UNDEFINED ): type(type) {}
-    virtual ~Undefined() {}
-    
-    virtual void print( ostream& o ) const { o << "undefined"; }
-    
-    virtual Var rvalue( const string& st ) const { throw Erro( "Essa variável não é um objeto" ); }
-    virtual Var& lvalue( const string& st ) { throw Erro( "Essa variável não é um objeto" ); }
-    
-    virtual Var func( const Var& arg ) const { 
-      throw Erro( "Essa variável não pode ser usada como função" ); 
-    } 
-    
-  public:
-      const TYPE type;
-  };
+	class Undefined {
+		public:
+			Undefined( TYPE type = UNDEFINED ): type(type) {}
+			virtual ~Undefined() {}
+			
+			virtual void print( ostream& o ) const { o << "undefined"; }
+			
+			virtual Var rvalue( const string& st ) const { throw Erro( "Essa variável não é um objeto" ); }
+			virtual Var& lvalue( const string& st ) { throw Erro( "Essa variável não é um objeto" ); }
+			virtual Var rvalue( const int i ) const { throw Erro( "Essa variável não é um array" ); }
+			virtual Var& lvalue( const int i ) { throw Erro( "Essa variável não é um array" ); }
+			
+			virtual Var func( const Var& arg ) const { 
+			  throw Erro( "Essa variável não pode ser usada como função" ); 
+			} 
+		
+		public:
+			const TYPE type;
+	};
 
   // === Tipos internos =======================
   template <typename T>
-  class Type: public Undefined {
-  public:
-    Type( const T& v ): Undefined( sel_type() ), v(v) {}
+	class Type: public Undefined {
+	public:
+		Type( const T& v ): Undefined( sel_type() ), v(v) {}
 
-    virtual void print( ostream& o ) const { 
-      if constexpr( is_same_v< bool, T > )
-	o << (v? "true" : "false"); 
-      else
-	o << v;
-    }
-        
-    const T& value() const { return v; }
+		virtual void print( ostream& o ) const { 
+			if constexpr( is_same_v< bool, T > )
+				o << (v? "true" : "false"); 
+			else
+				o << v;
+		}
+		
+		const T& value() const { return v; }
 
-    static constexpr TYPE sel_type() {
-      if constexpr ( is_same_v<int, T> ) return INT;
-      else if constexpr ( is_same_v<char, T> ) return CHAR;
-      else if constexpr ( is_same_v<bool, T> ) return BOOL;
-      else if constexpr ( is_same_v<double, T> ) return DOUBLE;
-      else if constexpr ( is_same_v<string, T> ) return STRING;
-      //else if constexpr ( is_same_v<vector<T>, T
-      else return UNDEFINED;
-    }
-  private:
-    T v;
-  };
+		static constexpr TYPE sel_type() {
+			if constexpr ( is_same_v<int, T> ) return INT;
+			else if constexpr ( is_same_v<char, T> ) return CHAR;
+			else if constexpr ( is_same_v<bool, T> ) return BOOL;
+			else if constexpr ( is_same_v<double, T> ) return DOUBLE;
+			else if constexpr ( is_same_v<string, T> ) return STRING;
+			else if constexpr ( is_same_v<vector<Var>, T>) return ARRAY;
+			else return UNDEFINED;
+		}
+	private:
+		T v;
+	};
   
-  class Object: public Undefined {
-  public:
-    Object(): Undefined( OBJECT ) {}
-    
-    virtual void print( ostream& o ) const { o << "object"; }
-    
-    virtual Var& lvalue( const string& st ) { return atr[st]; }
-    virtual Var rvalue( const string& st ) const { 
-      if( auto x = atr.find( st ); x != atr.end() )
-	return x->second;
-      else
-	return Var(); 
-    }
-    
-  private:
-    map<string,Var> atr; 
-  };
+	class Object: public Undefined {
+	public:
+		Object(): Undefined( OBJECT ) {}
+		Object(TYPE t):Undefined(t) {}
+		
+		virtual void print( ostream& o ) const { o << "object"; }
+		
+		virtual Var& lvalue( const string& st ) { return atr[st]; }
+		virtual Var rvalue( const string& st ) const { 
+		  if( auto x = atr.find( st ); x != atr.end() )
+		return x->second;
+		  else
+		return Var(); 
+		}
 
-  template <typename F>
-  class Func: public Undefined {
-  public:
-    Func( F f ): Undefined( FUNCTION ), f(f) {}
+	private:
+		map<string,Var> atr; 
+	};
 
-    virtual void print( ostream& o ) const { o << "function"; }
+	class Array: public Object {
+	public:
+		Array(): Object(ARRAY) {}
+		Array(vector<Var> vetor ): Object(ARRAY), vetor(vetor) {}
+		
+		virtual Var& lvalue( const int i ) { return vetor[i]; }
+		virtual Var rvalue( const int i ) const { return vetor[i]; }
     
-    virtual Var func( const Var& arg ) const { return invoke( f, arg ); }  
+		virtual void print( ostream& o ) const;
     
-  private:
-    F f;
-  };
+	private:
+		vector<Var> vetor; 
+	};
+	template <typename F>
+	class Func: public Object {
+		public:
+			Func( F f ): Undefined( FUNCTION ), f(f) {}
+			virtual void print( ostream& o ) const { o << "function"; }
+			virtual Var func( const Var& arg ) const { return invoke( f, arg ); }  
+		private:
+			F f;
+	};
 
   typedef Type<bool> Bool;
   typedef Type<char> Char;
@@ -149,6 +162,7 @@ public:
   Var( const string& st ): valor( new String( st ) ) {}
   Var( const char* st ): valor( new String( st ) ) {}
   Var(  Object *o ): valor( o ) {}
+  Var (vector<Var> v): valor (shared_ptr<Undefined>( new Array( v ) )) {}
 
   template <typename F>
   Var( const enable_if_t< is_invocable_r<Var, F, Var>::value, F>&& f ): valor( shared_ptr<Undefined>( new Func<F>( f ) ) ) {}
@@ -175,6 +189,8 @@ public:
 
   Var& operator[]( const string& st ) { return valor->lvalue( st ); }
   Var  operator[]( const string& st ) const { return valor->rvalue( st ); }
+  Var& operator[]( const int i ) { return valor->lvalue( i ); }
+  Var  operator[]( const int i ) const { return valor->rvalue( i ); }
   
   Var operator()( const Var& arg ) const { return valor->func( arg ); }
    
@@ -319,4 +335,19 @@ Var operator >= ( const Var& a, const Var& b ) { return !(a<b); }
 
 Var::Object* newObject() {
   return new Var::Object();
+}
+
+void Var::Array::print (ostream& o) const { 
+	cout << "[ "; 
+	for(Var x : vetor) cout << x << " ";
+	cout << "]";				
+}
+
+int main () {
+	Var a = "Ola";
+	Var b = " Estou só testando";
+	vector<Var>v = {a, b};
+	Var c (v);
+	c["tudo"] = 5;
+	cout << c[0] << endl << c["tudo"] << endl;
 }
