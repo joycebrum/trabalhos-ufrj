@@ -22,7 +22,7 @@ public:
     string msg;
   };
 
-  enum TYPE { UNDEFINED = 0, CHAR, BOOL, INT, DOUBLE, STRING, OBJECT, FUNCTION }; 
+  enum TYPE { UNDEFINED = 0, CHAR, BOOL, INT, DOUBLE, STRING, OBJECT, FUNCTION, ARRAY }; 
     
   class Undefined {
   public:
@@ -63,6 +63,7 @@ public:
       else if constexpr ( is_same_v<bool, T> ) return BOOL;
       else if constexpr ( is_same_v<double, T> ) return DOUBLE;
       else if constexpr ( is_same_v<string, T> ) return STRING;
+      //else if constexpr ( is_same_v<vector<T>, T
       else return UNDEFINED;
     }
   private:
