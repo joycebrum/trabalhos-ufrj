@@ -34,6 +34,10 @@ public:
 
 		virtual Var rvalue( const string& st ) const { throw Erro( "Essa variável não é um objeto" ); }
 		virtual Var& lvalue( const string& st ) { throw Erro( "Essa variável não é um objeto" ); }
+		virtual Var rvalue( const int i ) const { throw Erro( "Essa variável não é um array" ); }
+		virtual Var& lvalue( const int i ) { throw Erro( "Essa variável não é um array" ); }
+		virtual Var rvalue( const Var var ) const { throw Erro( "Essa variável não é um array" ); }
+		virtual Var& lvalue( const Var var ) { throw Erro( "Essa variável não é um array" ); }
 
 		virtual Var func( const Var& arg ) const { 
 			throw Erro( "Essa variável não pode ser usada como função" ); 
@@ -109,6 +113,19 @@ public:
 		Array(): Object(ARRAY) {}
 		
 		virtual void print (ostream& o ) const;
+		virtual Var& lvalue( const int i ) { return v[i]; }
+		virtual Var rvalue( const int i ) const { return v[i]; }
+		/*virtual Var& lvalue( const Var var ) { 
+			switch(var.valor->type) {
+				case INT: 
+					return ((const Int*) valor.get())->value();
+				default:
+					throw Erro( "Essa variável não é um array" );
+					break;
+					
+			}
+		}
+		virtual Var rvalue( const Var var ) const { return v[i]; }*/
 		
 		private:
 		vector<Var> v;
@@ -186,8 +203,23 @@ public:
   
 	void print( ostream& o ) const { valor->print( o ); }
 
-	Var& operator[]( const string& st ) { return valor->lvalue( st ); }
+	/*Var& operator[]( const string& st ) { return valor->lvalue( st ); }
 	Var  operator[]( const string& st ) const { return valor->rvalue( st ); }
+	Var& operator[]( int i) { return valor->lvalue(i); }
+	Var  operator[]( int i) const { return valor->rvalue(i); }*/
+	
+	Var  operator[]( Var a) { 
+		cout << "ola";
+		cout  << " tipo; " << a.valor->type << endl;
+		switch (a.valor->type) {
+			case STRING:
+				return valor->rvalue( ((const String*) valor.get())->value() );
+			case INT:
+				return valor->rvalue( ((const Int*) valor.get())->value() );
+			default: 
+				throw Erro( "Operação inválida." );
+		}
+	}
   
 	Var operator()( const Var& arg ) const { return valor->func( arg ); }
   
@@ -381,6 +413,13 @@ Var::Array* newArray() {
 }
 void Var::Array::print(ostream& o) const { cout << "[ "; for(Var x : v) cout << x << " "; cout << "]"; }
 int main () {
-	Var b = newArray();
-	cout << b.isNumber()<< endl;
+	Var a, b;
+	a = newArray();
+	a["sqr"] = []( int n ){ return n*n; }; 
+
+	for( b = 0; (b < 10).asBool(); b = b + 1 ) {
+		
+	  a[b] = 3;// a["sqr"]( b );
+	  cout << a[b] << ", ";
+  }
 }
