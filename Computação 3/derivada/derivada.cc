@@ -1,6 +1,7 @@
 #include <iostream>
 #include <math.h>
 #include <type_traits>
+#include <sstream>
 
 using namespace std;
 
@@ -15,6 +16,12 @@ public:
 	double dx(double v) {
 		return 1;
 	}
+	string str() const {
+		return "x";
+	}
+	string dx_str() const {
+		return "1";
+	}
 };
 X x;
 
@@ -28,6 +35,14 @@ public:
   double dx(double v) {
 	  return 0;
   }
+	string str() const {		
+		ostringstream strs;
+		strs << c;
+		return strs.str();
+	}
+	string dx_str() const {
+		return "0";
+	}
   
 private:
   double c;
@@ -45,6 +60,12 @@ class Cosseno {
 	}
 	double dx(double v) {
 		return -1*sin(f.e(v))*f.dx(v);
+	}
+	string str() const {
+		return "cos(" + f.str() + ")";
+	}
+	string dx_str() const {
+		return "(-sin(" + f.str() + ")*" + f.dx_str()+")";
 	}
 	
 	private:
@@ -65,6 +86,12 @@ class Seno {
 	double dx(double v) {
 		return cos(f.e(v))*f.dx(v);
 	}
+	string str() const {
+		return "sin(" + f.str() + ")";
+	}
+	string dx_str() const {
+		return "(cos(" + f.str() + ")*" + f.dx_str() + ")";
+	}
 	private:
 	F f;
 };
@@ -82,6 +109,12 @@ public:
 	}
 	double dx( double v ) {
 		return f1(v)*f2.dx(v) + f1.dx(v)*f2(v);
+	}
+	string str() const {
+		return "((" + f1.str() + ")*(" + f2.str() + "))";
+	}
+	string dx_str() const {
+		return "(((" + f1.dx_str()+")*" + "(" + f2.str() + "))+" + "((" + f1.str()+")*" + "(" + f2.dx_str() + ")))";
 	}
   
 private:
@@ -104,6 +137,12 @@ public:
 	double dx( double v ) {
 		return (f1(v)*f2.dx(v) - f1.dx(v)*f2(v)) / (f2(v) * f2(v));
 	}
+	string str() const {
+		return "((" + f1.str() + ")/(" + f2.str() + "))";
+	}
+	string dx_str() const {
+		return "(((" + f1.dx_str()+")*" + "(" + f2.str() + ")-" + "(" + f1.str()+")*" + "(" + f2.dx_str() + "))/(" + f2.str() + ")^2)";
+	}
   
 private:
 	F1 f1;
@@ -125,7 +164,12 @@ public:
 	double dx( double v ) {
 		return f1.dx(v) + f2.dx(v);
 	}
-	
+	string str() const {
+		return "((" + f1.str() + ")+(" + f2.str() + "))";
+	}
+	string dx_str() const {
+		return "((" + f1.dx_str() + ")+(" + f2.dx_str() + "))";
+	}
   
 private:
 	F1 f1;
@@ -148,6 +192,12 @@ public:
 	double dx( double v ) {
 		return f1.dx(v) - f2.dx(v);
 	}
+	string str() const {
+		return "((" + f1.str() + ")-(" + f2.str() + "))";
+	}
+	string dx_str() const {
+		return "((" + f1.dx_str() + ")-(" + f2.dx_str() + "))";
+	}
   
 private:
 	F1 f1;
@@ -166,6 +216,18 @@ class Potencia {
 	}
 	double dx(double v) {
 		return potencia * pow( f(v), potencia-1 ) * f.dx(v);
+	}
+	string str() const {
+		ostringstream strs;
+		strs << potencia;
+		return "(" + f.str() + ")^" + strs.str();
+	}
+	string dx_str() const {
+		ostringstream strs;
+		strs << potencia-1;
+		ostringstream strs2;
+		strs2 << potencia;
+		return "(" + strs2.str() + "*(" + f.dx_str()  + ")*(" + f.str() + ")^"+strs.str() + ")";
 	}
 	private:
 	F f;
@@ -187,6 +249,12 @@ class Exponencial {
 	double dx (double v) {
 		return exp( f(v) )*f.dx(v);
 	}
+	string str() const {
+		return "exp(" + f.str() + ")";
+	}
+	string dx_str() const {
+		return "(exp(" + f.str() + ")*(" + f.dx_str() + "))";
+	}
 	private:
 	F f;
 };
@@ -204,6 +272,12 @@ class Logaritmo {
 	}
 	double dx (double v) {
 		return (1/f(v)) * f.dx(v);
+	}
+	string str() const {
+		return "log(" + f.str() + ")";
+	}
+	string dx_str() const {
+		return "1/(" + f.str() + ")*(" + f.dx_str() + ")";
 	}
 	private: 
 	F f;
@@ -336,10 +410,17 @@ Logaritmo<F> log(F f) {
 }
 
 int main() {
-	double v = 3;
-	auto f =  2 * x->*1.1;
+	auto f =  1.0 / (sin(x)->*2 + cos(x)->*2)->*4;
 
-	cout << "f(" << v<< ")= " << f.e(v) << " f'("<< v << ")= " << f.dx(v) << "   ";// << x->*2;
+	cout << f.dx_str();// << x->*2;
   
   return 0;
 }
+f'(x) = (
+			(
+				(0)*(((((sin(x))^2)+((cos(x))^2)))^4)
+				-(1)*((4*((((2*((cos(x)*1))*(sin(x))^1))+((2*((-sin(x)*1))*(cos(x))^1))))*((((sin(x))^2)+((cos(x))^2)))^3))
+			)
+			/
+			(((((sin(x))^2)+((cos(x))^2)))^4)^2
+		);
