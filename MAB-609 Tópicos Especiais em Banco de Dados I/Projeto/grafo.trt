@@ -1,0 +1,19 @@
+ 
+C:\Users\joyce\projeto> ./projeto "grafo.trt"
+Insira o novo elemento e as triplas que o caracterizam da seguinte forma: URI:Sujeito URI:predicado URI:Objeto
+envie "END" quando tiver terminado.
+
+- entrada: ex:Maria a foaf:Person 
+		   ex:Maria rdfs:label "Maria das Graças"
+		   ex:Maria foaf:Age "15"^^xsd:integer
+		   END
+- saida:   ex:Maria ex:isSonOf ex:Desire ? Se sim, envie "s", se não, envie "n". Envie "skip" para enviar "s" para todas as validações
+
+- entrada: n
+
+- saida:   ex:Maria ex:isSonOf ex:Matilde ? Se sim, envie "s", se não, envie "n". Envie "skip" para enviar "s" para todas as validações
+
+- entrada: s
+
+- saida: novo grafo rdf gerado no arquivo saida.trt
+		   
