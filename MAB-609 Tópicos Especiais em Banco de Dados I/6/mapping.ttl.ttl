@@ -1,0 +1,61 @@
+# Mapping created using R2RML editor.
+  @prefix rr: <http://www.w3.org/ns/r2rml#> .
+  @prefix dbp: <http://dbpedia.org/ontology/> .
+  @prefix foaf: <http://xmlns.com/foaf/0.1> .
+  @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+  @prefix ex: <http://example.com/ns#> .
+
+  <#TripleMap1>
+  rr:logicalTable [
+    rr:tableName "Tabela";
+  ];
+     rr:subjectMap [
+      rr:template "http://data.example.com/debtor/{ID}";
+      rr:class dbp:Debtor;
+    ];
+
+     rr:predicateObjectMap [
+      rr:predicateMap [
+        rr:constant foaf:name;
+        rr:termType rr:IRI;
+      ];
+
+       rr:objectMap [
+        rr:column "NomeRazaoSocial";
+      ];
+
+     ];
+    rr:predicateObjectMap [
+      rr:predicateMap [
+        rr:constant dbp:id;
+        rr:termType rr:IRI;
+      ];
+
+       rr:objectMap [
+        rr:column "ID";
+      ];
+
+     ];
+    rr:predicateObjectMap [
+      rr:predicateMap [
+        rr:constant dbp:value;
+        rr:termType rr:IRI;
+      ];
+
+       rr:objectMap [
+        rr:column "ValorTotalDevidoReais";
+      ];
+
+     ];
+    rr:predicateObjectMap [
+      rr:predicateMap [
+        rr:constant ex:has;
+        rr:termType rr:IRI;
+      ];
+
+       rr:objectMap [
+        rr:column "CpfCnpj";
+      ];
+
+     ];
+   .
