@@ -5,9 +5,21 @@
 #include <map>
 #include <memory>
 #include <sstream>
-
+#include <ctype.h>
 using namespace std;
+bool isNumeric(string s) {
+	if (s.length() == 0) return true;
+	auto it = s.begin();
+	while (it != s.end() && (isdigit(*it) || *it == ' ')) ++it;
+	return !s.empty() && it == s.end();
+}
 
+bool isSame(string s, char c) {
+    if (s.length() == 1) { 
+        return s[0] == c;
+    }
+    return false;
+}
 class Var {
 public:
   // === Exceções ==========
@@ -34,15 +46,15 @@ public:
 
 		virtual Var rvalue( const string& st ) const { throw Erro( "Essa variável não é um objeto" ); }
 		virtual Var& lvalue( const string& st ) { throw Erro( "Essa variável não é um objeto" ); }
-		virtual Var rvalue( const int i ) const { throw Erro( "Essa variável não é um array" ); }
-		virtual Var& lvalue( const int i ) { throw Erro( "Essa variável não é um array" ); }
-		virtual Var rvalue( const Var var ) const { throw Erro( "Essa variável não é um array" ); }
-		virtual Var& lvalue( const Var var ) { throw Erro( "Essa variável não é um array" ); }
+		virtual Var& lvalue( int i ) { throw Erro("Essa variável não é um objeto" ); }
+		virtual void forEach(const Var& f) const { throw Erro("Essa variável não é um array" ); }
+		virtual Var filter(const Var& f) const { throw Erro("Essa variável não é um array"); }
+		virtual Var indexOf( const Var& f) const {throw Erro("Essa variável não é um array"); }
 
-		virtual Var func( const Var& arg ) const { 
+		virtual Var func( const Var& arg ) const {
 			throw Erro( "Essa variável não pode ser usada como função" ); 
 		} 
-
+		
 		public:
 			const TYPE type;
 	};
@@ -89,8 +101,12 @@ public:
 			else
 				return Var(); 
 		}
+		virtual Var& lvalue( int i ) override{ 
+			string val = to_string(i);
+			return atr[val]; 
+		}
 
-		private:
+		protected:
 		map<string,Var> atr; 
 	};
 
@@ -100,33 +116,56 @@ public:
 		Func( F f ): Object( FUNCTION ), f(f) {}
 
 		virtual void print( ostream& o ) const { o << "function"; }
-
-		virtual Var func( const Var& arg ) const { return invoke( f, arg ); }  
-
+		virtual Var func( const Var& arg ) const {
+			if constexpr ( is_invocable_r<Var, F, int>::value) {
+				return f( ((const Int*) arg.valor.get())->value() );
+			}
+			else if constexpr (is_invocable_r<Var, F, double>::value) {
+				return f( ((const Double*) arg.valor.get())->value() );
+			}
+			else if constexpr (is_invocable_r<Var, F, Var>::value) {
+				return f( arg );
+			}
+			else if constexpr(is_invocable_r<void, F, string>::value) {
+				f(arg);
+			}
+			else if constexpr(is_invocable_r<void, F, Var>::value) {
+				f(arg);
+			}
+			else if constexpr(is_invocable_r<void, F, int>::value) {
+				f(arg);
+			}
+			else if constexpr(is_invocable_r<void, F, double>::value) {
+				f(arg);
+			}
+			else if constexpr(is_invocable_r<void, F, string>::value) {
+				f(arg);
+			}
+			return Var(); 
+		}
+		
 		private:
 		F f;
 	};
 	
 	class Array: public Object {
 		public:
-		Array(vector<Var> v): Object(ARRAY), v(v) {}
-		Array(): Object(ARRAY) {}
+		Array(vector<Var> v): Object(ARRAY), v(v) {
+		}
 		
 		virtual void print (ostream& o ) const;
-		virtual Var& lvalue( const int i ) { return v[i]; }
-		virtual Var rvalue( const int i ) const { return v[i]; }
-		/*virtual Var& lvalue( const Var var ) { 
-			switch(var.valor->type) {
-				case INT: 
-					return ((const Int*) valor.get())->value();
-				default:
-					throw Erro( "Essa variável não é um array" );
-					break;
-					
+		virtual void forEach(const Var& f) const {
+			if (f.valor->type == FUNCTION) {
+				for( auto x : atr ) {
+					if (isNumeric(x.first) ) f(x.second);
+				}
+			}
+			else {
+				throw Erro( "Parâmetro precisa ser uma função" );
 			}
 		}
-		virtual Var rvalue( const Var var ) const { return v[i]; }*/
-		
+		virtual Var filter( const Var& f) const ;
+		virtual Var indexOf( const Var& f) const;
 		private:
 		vector<Var> v;
 	};
@@ -156,7 +195,10 @@ private:
 	static Var divisao( const Undefined* a, const Undefined* b ) { return ((const A*) a)->value() / ((const B*) b)->value(); }
 
 	template <typename A, typename B>
-	static Var menor( const Undefined* a, const Undefined* b ) { return ((const A*) a)->value() < ((const B*) b)->value(); }
+	static Var menor( const Undefined* a, const Undefined* b ) { 
+		//cout << "menor "<< (((const A*) a)->value() < ((const B*) b)->value()) << endl << endl;
+		return ((const A*) a)->value() < ((const B*) b)->value(); }
+    
     
 public:
 
@@ -168,6 +210,7 @@ public:
 	static Var sel_and( const Var& a, const Var& b );
 	static Var sel_or( const Var& a, const Var& b );
 	static Var sel_not( const Var& a );
+	static Var sel_dif (const Var& a, const Var& b);
   
 // === Construtores ================================
 public:
@@ -179,9 +222,10 @@ public:
 	Var( const string& st ): valor( new String( st ) ) {}
 	Var( const char* st ): valor( new String( st ) ) {}
 	Var(  Object *o ): valor( o ) {}
+	Var( Array *a): valor(a) {}
 
 	template <typename F>
-	Var( const enable_if_t< is_invocable_r<Var, F, Var>::value, F>&& f ): valor( shared_ptr<Undefined>( new Func<F>( f ) ) ) {}
+	Var( const F& f ): valor( shared_ptr<Undefined>( new Func<F>( f ) ) ) {}
   
 	const Var& operator = ( bool v ) { valor = shared_ptr<Undefined>( new Bool( v ) ); return *this; }
 	const Var& operator = ( char v ) { valor = shared_ptr<Undefined>( new Char( v ) ); return *this; }
@@ -194,37 +238,22 @@ public:
 		valor = shared_ptr<Undefined>( o ); 
 		return *this;
 	}
+	const Var& operator = (Array *a) { valor = shared_ptr<Undefined>( a ); return *this; }
   
 	template <typename F>
-	auto operator = ( const F& f ) -> const enable_if_t< is_invocable_r<Var, F, Var>::value, Var>& {
+	Var operator = ( const F& f ) {
 		valor = shared_ptr<Undefined>( new Func<F>( f ) );
 		return *this;
 	}
   
 	void print( ostream& o ) const { valor->print( o ); }
-
-	/*Var& operator[]( const string& st ) { return valor->lvalue( st ); }
-	Var  operator[]( const string& st ) const { return valor->rvalue( st ); }
-	Var& operator[]( int i) { return valor->lvalue(i); }
-	Var  operator[]( int i) const { return valor->rvalue(i); }*/
 	
-	Var  operator[]( Var a) { 
-		cout << "ola";
-		cout  << " tipo; " << a.valor->type << endl;
-		switch (a.valor->type) {
-			case STRING:
-				return valor->rvalue( ((const String*) valor.get())->value() );
-			case INT:
-				return valor->rvalue( ((const Int*) valor.get())->value() );
-			default: 
-				throw Erro( "Operação inválida." );
-		}
-	}
-  
+	
+	Var&  operator[]( const Var& a) ;
+
 	Var operator()( const Var& arg ) const { return valor->func( arg ); }
-  
 // === Metodos ============================================
-	bool asBool() {
+	bool asBool() const {
 		switch(valor->type) {
 			case BOOL:
 				return ((const Bool*) valor.get())->value();
@@ -232,17 +261,22 @@ public:
 				return ((const Int*) valor.get())->value() != 0;
 			case DOUBLE:
 				return ((const Double*) valor.get())->value() != 0;
+			case CHAR:
+				return !!((const Char*) valor.get())->value();
+			case STRING:
+				return ((const String*) valor.get())->value().length() > 0;
+			case OBJECT:
+				return true;
 			default: 
 				return false;
 		}
 	}
 	
-	string asString() {
+	string asString() const{
 		ostringstream strs;
 		switch(valor->type) {
 			case BOOL:
-				strs << ((const Bool*) valor.get())->value();
-				return strs.str();
+				return ((const Bool*) valor.get())->value() ? "true" : "false";
 			case INT:
 				return to_string(((const Int*) valor.get())->value());
 			case DOUBLE:
@@ -251,20 +285,32 @@ public:
 			case CHAR:
 				strs << ((const Char*) valor.get())->value();
 				return strs.str();
+			case STRING:
+				return ((const String*) valor.get())->value();
+			case OBJECT:
+				return "object";
 			default :
-				return "";
+				return "undefined";
 		}
 	}
 	bool isNumber() {
 		switch(valor->type) {
 			case INT:
 			case DOUBLE:
+			case BOOL:
 				return true;
+			case CHAR:
+				return isdigit( ((const Char*) valor.get())->value() ); 
+			case STRING:
+				return isNumeric(((const String*) valor.get())->value());
 			default:
 				return false;
 		}
 	}
-   
+	void forEach(const Var& f) const { return valor->forEach(f); }
+	Var filter(const Var& f) const { return valor->filter(f); }
+	Var indexOf( const Var& f) const { return valor->indexOf(f); }
+	
 public:
   shared_ptr<Undefined> valor;
 };
@@ -341,7 +387,7 @@ Var Var::sel_menor( const Var& a, const Var& b ) {
     case tipo_args( CHAR, CHAR ): 	return menor<Char,Char>( a.valor.get(), b.valor.get() ); 
     case tipo_args( INT, INT ): 	return menor<Int,Int>( a.valor.get(), b.valor.get() );
     case tipo_args( DOUBLE, DOUBLE ): 	return menor<Double,Double>( a.valor.get(), b.valor.get() ); 
-    case tipo_args( STRING, STRING): 	return menor<String,String>( a.valor.get(), b.valor.get() ); 
+    case tipo_args( STRING, STRING): 	cout << "strings" << endl; return menor<String,String>( a.valor.get(), b.valor.get() ); 
 
     case tipo_args( INT, CHAR ): 	return menor<Int,Char>( a.valor.get(), b.valor.get() );
     case tipo_args( CHAR, INT ): 	return menor<Char,Int>( a.valor.get(), b.valor.get() );
@@ -353,7 +399,7 @@ Var Var::sel_menor( const Var& a, const Var& b ) {
     case tipo_args( CHAR, STRING ): 	return string( ((const Char*) a.valor.get())->value(), 1 ) < ((const String*) b.valor.get())->value(); 
     
     default:
-      return Var();
+      return Var(false);
    }
 }
 
@@ -378,9 +424,7 @@ Var Var::sel_or( const Var& a, const Var& b ) {
 Var Var::sel_not( const Var& a ) {
     switch( a.valor->type ) {
       case BOOL: 	return !((const Bool*) a.valor.get())->value(); 
-    
-    default:
-      return Var();
+      default: return !a.asBool();
    }
 }
 
@@ -399,27 +443,108 @@ Var operator && ( const Var& a, const Var& b ) { return Var::sel_and( a, b ); }
 Var operator ! ( const Var& a ) { return Var::sel_not( a ); }
 
 Var operator > ( const Var& a, const Var& b ) { return b<a; }
-Var operator != ( const Var& a, const Var& b ) { return (a<b) || (b<a); }
+Var operator != ( const Var& a, const Var& b ) { return Var::sel_dif(a,b); }
 Var operator == ( const Var& a, const Var& b ) { return !(a!=b); }
 Var operator <= ( const Var& a, const Var& b ) { return !(b<a); }
 Var operator >= ( const Var& a, const Var& b ) { return !(a<b); }
+
+Var Var::sel_dif (const Var& a, const Var& b) {
+	switch( tipo_args( a.valor->type, b.valor->type ) ) {
+		case tipo_args(INT, INT):
+		case tipo_args(DOUBLE, DOUBLE):
+		case tipo_args(BOOL, BOOL):
+			return Var::sel_menor( a, b ) || Var::sel_menor( b, a );
+		case tipo_args(CHAR, STRING):
+			return !isSame( ((const String*) b.valor.get())->value(), ((const Char*) a.valor.get())->value() );
+		case tipo_args(STRING, CHAR):
+			return !isSame( ((const String*) a.valor.get())->value(), ((const Char*) b.valor.get())->value() );
+		case tipo_args(STRING, STRING):
+			return ((const String*) a.valor.get())->value() != ((const String*) b.valor.get())->value();
+		case tipo_args(CHAR, CHAR):
+			return ((const Char*) a.valor.get())->value() != ((const Char*) b.valor.get())->value();
+		default:
+			return true;
+	}
+}
+
 
 Var::Object* newObject() {
   return new Var::Object();
 }
 
 Var::Array* newArray() {
-	return new Var::Array();
+	return new Var::Array({});
+}
+Var& Var::operator [] (const Var& a ) {
+	switch (a.valor->type) {
+		case STRING:
+			return valor->lvalue( ((const String*) a.valor.get())->value() );	
+		case DOUBLE:
+			return valor->lvalue( a.asString() );
+		case INT:
+			return valor->lvalue( ((const Int*) a.valor.get())->value() );
+		default: 
+			throw Erro( "Operação inválida." );
+	}
+}
+Var Var::Array::filter( const Var& f) const {
+	Var v = newArray();
+	if (f.valor->type == FUNCTION) {
+		for( auto x : atr ) {
+			if(isNumeric(x.first) && f(x.second).asBool()) {
+				v[x.first] = x.second;
+			}
+		}
+		return v;
+	}
+	else {
+		throw Erro( "Parâmetro precisa ser uma função" );
+	}
+}
+Var Var::Array::indexOf( const Var& f) const {
+	for( auto x : atr ) {
+		if(isNumeric(x.first) && (x.second == f).asBool()) { 
+			int pos;
+			stringstream transform(x.first);
+			transform >> pos;
+			return pos;
+		}
+	}
+	return -1;
 }
 void Var::Array::print(ostream& o) const { cout << "[ "; for(Var x : v) cout << x << " "; cout << "]"; }
-int main () {
-	Var a, b;
+int main () try {     
+	
+	
+	Var a, b,c ,d ;
 	a = newArray();
-	a["sqr"] = []( int n ){ return n*n; }; 
+	Var pares = []( auto n ){ return n%2 == 0; };
 
-	for( b = 0; (b < 10).asBool(); b = b + 1 ) {
-		
-	  a[b] = 3;// a["sqr"]( b );
-	  cout << a[b] << ", ";
-  }
+	for( b = 0; (b < 10).asBool(); b = b + 1 )
+	a[b] = b*b;
+
+
+	auto indexOf = []( const Var& array, Var valor ) {
+		int n = 0;
+		int pos = -1;
+
+		array.forEach( [&n,&pos,valor](auto x) {
+			if( pos == -1 ) {
+				if( (x == valor).asBool() )
+					pos = n;
+				n++;
+				}
+			} );
+
+			return pos;
+	};
+
+	cout << (indexOf( a, 36 ) == a.indexOf( 36 ) ) << endl;
+	cout << indexOf( a.filter( pares ), "A" ) << endl;
+
+	a[11] = 'A';
+	cout << a.indexOf( "A" ) << endl;
+
+} catch( Var::Erro e ) {
+	cout << "Erro fatal: " << e() << endl;
 }
