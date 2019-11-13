@@ -5,6 +5,13 @@
 
 using namespace std;
 
+string parenteses(string v) {
+	if (v.length() > 1) {
+		return "("+v+")";
+	}
+	return v;
+}
+
 class X {
 public:
 	double operator()( double v ) {
@@ -47,6 +54,66 @@ public:
 private:
   double c;
 };
+class String {
+public:
+  String( string c ): c(c) {}
+  
+  string operator()( double v ) {
+    return c;
+  }
+	string str() const {		
+		return c;
+	}
+  
+private:
+  string c;
+};
+
+
+template <typename F1, typename F2>
+class Soma {
+public:
+	Soma( F1 f1, F2 f2 ): f1(f1), f2(f2) {}
+	  
+	double operator()( double v ) {
+		return f1(v) + f2( v );
+	}
+	double e( double v ) {
+		return f1(v) + f2(v);
+	}
+	  
+	double dx( double v ) {
+		return f1.dx(v) + f2.dx(v);
+	}
+	string str() const {
+		if (f1.str() == "0" || f2.str() == "0") {
+			if (f1.str() == "0" && f2.str() == "0") {
+				return "0";
+			}
+			if (f1.str() == "0") {
+				return f2.str();
+			}
+			return f1.str();
+		}
+		return f1.str() + "+" + f2.str();
+	}
+	string dx_str() const {
+		if (f1.dx_str() == "0" || f2.dx_str() == "0") {
+			if (f1.dx_str() == "0" && f2.dx_str() == "0") {
+				return "0";
+			}
+			if (f1.dx_str() == "0") {
+				return f2.dx_str();
+			}
+			return f1.dx_str();
+		}
+		return f1.dx_str() + "+" + f2.dx_str();
+	}
+  
+private:
+	F1 f1;
+	F2 f2;
+};
 
 template<typename F>
 class Cosseno {
@@ -65,7 +132,7 @@ class Cosseno {
 		return "cos(" + f.str() + ")";
 	}
 	string dx_str() const {
-		return "(-sin(" + f.str() + ")*" + f.dx_str()+")";
+		return "-sin(" + f.str() + ")*" + parenteses(f.dx_str());
 	}
 	
 	private:
@@ -90,7 +157,7 @@ class Seno {
 		return "sin(" + f.str() + ")";
 	}
 	string dx_str() const {
-		return "(cos(" + f.str() + ")*" + f.dx_str() + ")";
+		return "cos(" + f.str() + ")*" + f.dx_str();
 	}
 	private:
 	F f;
@@ -111,15 +178,54 @@ public:
 		return f1(v)*f2.dx(v) + f1.dx(v)*f2(v);
 	}
 	string str() const {
-		return "((" + f1.str() + ")*(" + f2.str() + "))";
+		if (f1.str() == "0") {
+			return "0";
+		}
+		if (f2.str() == "0") {
+			return "0";
+		}
+		if (f1.str() == "1") {
+			if (f2.str() == "1") {
+				return "1";
+			}
+			return f2.str();
+		}
+		if (f2.str() == "1") {
+			return f1.str();
+		}
+		return parenteses(f1.str()) + "*" + parenteses(f2.str());
 	}
+	
+	
+	
 	string dx_str() const {
-		return "(((" + f1.dx_str()+")*" + "(" + f2.str() + "))+" + "((" + f1.str()+")*" + "(" + f2.dx_str() + ")))";
+		Multiplica<String, F2> fator1( String(f1.dx_str()), f2 );
+		Multiplica<F1, String> fator2 (f1, String(f2.dx_str()));
+		Soma<Multiplica<String, F2>, Multiplica<F1, String>> soma (fator1,fator2);
+		return soma.str();
 	}
   
 private:
 	F1 f1;
 	F2 f2;
+	string getStr(string v1, string v2) {
+		if (v1 == "0") {
+			return "0";
+		}
+		if (v2 == "0") {
+			return "0";
+		}
+		if (v1 == "1") {
+			if (v2 == "1") {
+				return "1";
+			}
+			return f2.str();
+		}
+		if (v2 == "1") {
+			return f1.str();
+		}
+		return "(" + v1 + ")*(" + v2 + ")";
+	}
 };
 
 template <typename F1, typename F2>
@@ -138,37 +244,10 @@ public:
 		return (f1(v)*f2.dx(v) - f1.dx(v)*f2(v)) / (f2(v) * f2(v));
 	}
 	string str() const {
-		return "((" + f1.str() + ")/(" + f2.str() + "))";
+		return parenteses(f1.str()) + "/" + parenteses(f2.str());
 	}
 	string dx_str() const {
-		return "(((" + f1.dx_str()+")*" + "(" + f2.str() + ")-" + "(" + f1.str()+")*" + "(" + f2.dx_str() + "))/(" + f2.str() + ")^2)";
-	}
-  
-private:
-	F1 f1;
-	F2 f2;
-};
-
-template <typename F1, typename F2>
-class Soma {
-public:
-	Soma( F1 f1, F2 f2 ): f1(f1), f2(f2) {}
-	  
-	double operator()( double v ) {
-		return f1(v) + f2( v );
-	}
-	double e( double v ) {
-		return f1(v) + f2(v);
-	}
-	  
-	double dx( double v ) {
-		return f1.dx(v) + f2.dx(v);
-	}
-	string str() const {
-		return "((" + f1.str() + ")+(" + f2.str() + "))";
-	}
-	string dx_str() const {
-		return "((" + f1.dx_str() + ")+(" + f2.dx_str() + "))";
+		return "(" + parenteses(f1.dx_str())+"*" + parenteses(f2.str()) + "-" + parenteses(f1.str()) +"*" + parenteses(f2.dx_str()) + ")/" + parenteses(f2.str()) +"^2)";
 	}
   
 private:
@@ -193,10 +272,54 @@ public:
 		return f1.dx(v) - f2.dx(v);
 	}
 	string str() const {
-		return "((" + f1.str() + ")-(" + f2.str() + "))";
+		if (f1.str() == "0" || f2.str() == "0") {
+			if (f1.str() == "0" && f2.str() == "0") {
+				return "0";
+			}
+			if (f1.str() == "0") {
+				return "-" + f2.str();
+			}
+			return f1.str();
+		}
+		string valor = "";
+		if (f1.str().length() > 1 ) {
+			valor = "(" + f1.str() + ")"; 
+		}
+		else {
+			valor = f1.str();
+		}
+		if (f2.str().length() > 1 ) {
+			valor = valor + "-(" + f2.str() + ")"; 
+		}
+		else {
+			valor = valor + "-" + f2.str();
+		}
+		return valor;
 	}
 	string dx_str() const {
-		return "((" + f1.dx_str() + ")-(" + f2.dx_str() + "))";
+		if (f1.dx_str() == "0" || f2.dx_str() == "0") {
+			if (f1.dx_str() == "0" && f2.dx_str() == "0") {
+				return "0";
+			}
+			if (f1.dx_str() == "0") {
+				return "-" + f2.dx_str();
+			}
+			return f1.dx_str();
+		}
+		string valor = "";
+		if (f1.dx_str().length() > 1 ) {
+			valor = "(" + f1.dx_str() + ")"; 
+		}
+		else {
+			valor = f1.dx_str();
+		}
+		if (f2.dx_str().length() > 1 ) {
+			valor = valor + "-(" + f2.dx_str() + ")"; 
+		}
+		else {
+			valor = valor + "-" + f2.dx_str();
+		}
+		return valor;
 	}
   
 private:
@@ -218,16 +341,32 @@ class Potencia {
 		return potencia * pow( f(v), potencia-1 ) * f.dx(v);
 	}
 	string str() const {
+		if (potencia == 0) {
+			return "1";
+		}
+		else if (potencia == 1) {
+			return f.str();
+		}
 		ostringstream strs;
 		strs << potencia;
-		return "(" + f.str() + ")^" + strs.str();
+		return parenteses(f.str()) + "^" + strs.str();
 	}
 	string dx_str() const {
 		ostringstream strs;
 		strs << potencia-1;
 		ostringstream strs2;
 		strs2 << potencia;
-		return "(" + strs2.str() + "*(" + f.dx_str()  + ")*(" + f.str() + ")^"+strs.str() + ")";
+		if (potencia == 0) {
+			return "0";
+		}
+		else if (potencia ==1){
+			return "1";
+		}
+		else if (potencia == 2) {
+			return "2*" + parenteses(f.dx_str())  + "*" + parenteses(f.str());
+		}
+		Multiplica<String, F> fator1( String(f.dx_str()), f );
+		return strs2.str() + "*" + fator1.str() + "^" + strs.str();
 	}
 	private:
 	F f;
@@ -277,7 +416,7 @@ class Logaritmo {
 		return "log(" + f.str() + ")";
 	}
 	string dx_str() const {
-		return "1/(" + f.str() + ")*(" + f.dx_str() + ")";
+		return "1/" + parenteses(f.str()) + "*" + parenteses(f.dx_str());
 	}
 	private: 
 	F f;
@@ -410,17 +549,8 @@ Logaritmo<F> log(F f) {
 }
 
 int main() {
-	auto f =  1.0 / (sin(x)->*2 + cos(x)->*2)->*4;
-
-	cout << f.dx_str();// << x->*2;
-  
+	//auto f = (x->*0)* x->*4;
+	auto f =  1.0 / (sin(x)->*2 + cos(x)->*2)->*4 ;
+	cout << f.str() <<  endl << f.dx_str();
   return 0;
 }
-f'(x) = (
-			(
-				(0)*(((((sin(x))^2)+((cos(x))^2)))^4)
-				-(1)*((4*((((2*((cos(x)*1))*(sin(x))^1))+((2*((-sin(x)*1))*(cos(x))^1))))*((((sin(x))^2)+((cos(x))^2)))^3))
-			)
-			/
-			(((((sin(x))^2)+((cos(x))^2)))^4)^2
-		);
