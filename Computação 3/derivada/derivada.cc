@@ -26,6 +26,28 @@ string monta_parenteses_dx(T v) {
 	return v.dx_str();
 }
 
+class X {
+public:
+	double operator()( double v ) {
+		return v;
+	}
+	double e(double v) {
+		return v;
+	} 
+	double dx(double v) {
+		return 1;
+	}
+	string str() const {
+		return "x";
+	}
+	string dx_str() const {
+		return "1";
+	}
+	bool parenteses_str() { return false; }
+	bool parenteses_dx() { return false; }
+};
+X x;
+
 class Cte {
 public:
   Cte( double c ): c(c) {}
@@ -44,41 +66,12 @@ public:
 	string dx_str() const {
 		return "0";
 	}
-	Cte v_dx() {
-		return Cte(0);
-	}
 	bool parenteses_str() { return false; }
 	bool parenteses_dx() { return false; }
   
 private:
   double c;
 };
-class X {
-public:
-	double operator()( double v ) {
-		return v;
-	}
-	double e(double v) {
-		return v;
-	} 
-	double dx(double v) {
-		return 1;
-	}
-	
-	Cte v_dx() {
-		return Cte(1);
-	}
-	string str() const {
-		return "x";
-	}
-	string dx_str() const {
-		return "1";
-	}
-	bool parenteses_str() { return false; }
-	bool parenteses_dx() { return false; }
-};
-X x;
-
 class String {
 public:
 	String( string c ): c(c) {}
@@ -92,8 +85,18 @@ public:
 	string dx_str() const {
 		return c;
 	}
-	bool parenteses_str() { return c.length() > 1; }
-	bool parenteses_dx() { return c.length() > 1; }
+	bool parenteses_str() { 
+		if (c.find("1/") != 0 && c.find("exp") != 0 && c.find("sin") != 0 && c.find("cos") != 0) {
+			return c.length() > 1; 
+		}
+		return false;
+	}
+	bool parenteses_dx() { 
+		if (c.find("1/") != 0 && c.find("exp") != 0 && c.find("sin") != 0 && c.find("cos") != 0) {
+			return c.length() > 1; 
+		}
+		return false;
+	}
   
 private:
   string c;
@@ -107,10 +110,6 @@ public:
 	  
 	double operator()( double v ) {
 		return f1(v) + f2( v );
-	}
-	template< typename D1, typename D2>
-	auto v_dx() {
-		return Soma<D1, D2>(f1.v_dx, f2.v_dx);
 	}
 	double e( double v ) {
 		return f1(v) + f2(v);
@@ -178,10 +177,6 @@ public:
 	double dx( double v ) {
 		return f1(v)*f2.dx(v) + f1.dx(v)*f2(v);
 	}
-	template< typename D1, typename D2>
-	auto v_dx() {
-		return Soma< Multiplica<D1,F2>, Multiplica<F1, D2> >(Multiplica<D1, F2>(f1.v_dx, f2), Multiplica<F1, D2>(f1, f2.v_dx));
-	}
 	string str() const {
 		if (f1.str() == "0") {
 			return "0";
@@ -197,15 +192,6 @@ public:
 		}
 		if (f2.str() == "1") {
 			return f1.str();
-		}
-		if (f1.str() == "-1") {
-			if (f2.str() == "-1") {
-				return "1";
-			}
-			return "-"+f2.str();
-		}
-		if (f2.str() == "-1") {
-			return "-"+f1.str();
 		}
 		return monta_parenteses_str(f1) + "*" + monta_parenteses_str(f2);
 	}
@@ -235,24 +221,6 @@ public:
 private:
 	F1 f1;
 	F2 f2;
-	string getStr(string v1, string v2) {
-		if (v1 == "0") {
-			return "0";
-		}
-		if (v2 == "0") {
-			return "0";
-		}
-		if (v1 == "1") {
-			if (v2 == "1") {
-				return "1";
-			}
-			return f2.str();
-		}
-		if (v2 == "1") {
-			return f1.str();
-		}
-		return "(" + v1 + ")*(" + v2 + ")";
-	}
 };
 
 
@@ -276,10 +244,7 @@ class Cosseno {
 		Multiplica<String, String> fator2 (String("-sin(" + f.str() + ")"), String(f.dx_str()));
 		return fator2.str();
 	}
-	template<typename D2>
-	auto v_dx() {
-		return Multiplica<Multiplica<Cte, Seno<F>>, D2>(Multiplica<Cte, Seno<F>>(Cte(-1), Seno<F>(f)), f.v_dx());
-	}
+	
 	bool parenteses_str() { return false; }
 	bool parenteses_dx() { 
 		if (f.dx_str() == "0" || f.dx_str() == "1") {
@@ -311,10 +276,6 @@ class Seno {
 	string dx_str() const {
 		Multiplica<String, String> fator2 (String("cos(" + f.str() + ")"), String(f.dx_str()));
 		return fator2.str();
-	}
-	template<typename D2>
-	auto v_dx() {
-		return Multiplica< Cosseno<F>, D2>(Cosseno<F>(f), f.v_dx());
 	}
 	bool parenteses_str() { return false; }
 	bool parenteses_dx() { 
@@ -368,10 +329,6 @@ public:
 		}
 		return monta_parenteses_dx(f1) + "-" + monta_parenteses_dx(f2);
 	}
-	template<typename D1, typename D2>
-	auto v_dx() {
-		return Subtracao< D1, D2>(f1.v_dx(), f2.v_dx());
-	}
 	bool parenteses_str() { 
 		if (f1.str() == "0" || f2.str() == "0") {
 			return false;
@@ -404,10 +361,6 @@ class Potencia {
 	double dx(double v) {
 		return potencia * pow( f(v), potencia-1 ) * f.dx(v);
 	}
-	template<typename D>
-	auto v_dx() {
-		return Multiplica< Multiplica< Cte, D >, Potencia<F> >(Multiplica< Cte, D >(potencia, f.v_dx()), Potencia<F>(f, potencia-1));
-	}
 	string str() const {
 		if (potencia == 0) {
 			return "1";
@@ -417,6 +370,13 @@ class Potencia {
 		}
 		ostringstream strs;
 		strs << potencia;
+		int i = f.str().length()-1;
+		while (i>=0 && ((f.str()[i] > '0' && f.str()[i] < '9') || f.str()[i] == '^')) {
+			if (f.str()[i] == '^') {
+				return "(" + f.str() + ")^"  + strs.str();
+			}
+			i = i - 1;
+		}
 		return monta_parenteses_str(f) + "^" + strs.str();
 	}
 	string dx_str() const {
@@ -465,12 +425,6 @@ public:
 	double dx( double v ) {
 		return (f1(v)*f2.dx(v) - f1.dx(v)*f2(v)) / (f2(v) * f2(v));
 	}
-	template<typename D1, typename D2>
-	auto v_dx() {
-		Potencia <F2> pot (f2, 2);
-		Subtracao< Multiplica<D1,F2>, Multiplica<F1, D2> > subs (Multiplica<D1, F2>(f1.v_dx, f2), Multiplica<F1, D2>(f1, f2.v_dx));
-		return Divide<Subtracao< Multiplica<D1,F2>, Multiplica<F1, D2> >, Potencia <F2>>(subs, pot);
-	}
 	string str() const {
 		if (f2.str()=="1") {
 			return f1.str();
@@ -478,21 +432,20 @@ public:
 		return monta_parenteses_str(f1) + "/" + monta_parenteses_str(f2);
 	}
 	string dx_str() const {
-		Multiplica<decltype(f1.v_dx()), F2> fator1 (f1.v_dx, f2);
-		Multiplica<F1, decltype(f2.v_dx())> fator2 (f1, f2.v_dx());
-		Subtracao<Multiplica<decltype(f1.v_dx()), F2>, Multiplica<F1, decltype(f2.v_dx())>> subs (fator1, fator2);
+		Multiplica<String, F2> fator1 (String(f1.dx_str()), f2);
+		Multiplica<F1, String> fator2 (f1, String(f2.dx_str()));
+		Subtracao<Multiplica<String, F2>, Multiplica<F1, String>> subs (fator1, fator2);
 		Potencia<F2> pot (f2, 2);
 		if (f2.str()=="1") {
 			return subs.str();
 		}
 		return monta_parenteses_str(subs) + "/" + pot.str();
 	}
-	bool parenteses_pot() { return true; }
 	
-	bool parenteses_str() { return false; }
+	bool parenteses_str() { return f2.str()!="1"; }
 	bool parenteses_dx() { 
-		Multiplica<decltype(f1.v_dx()), F2> fator1 (f1.v_dx, f2);
-		Multiplica<F1, decltype(f2.v_dx())> fator2 (f1, f2.v_dx());
+		Multiplica<String, F2> fator1 (String(f1.dx_str()), f2);
+		Multiplica<F1, String> fator2 (f1, String(f2.dx_str()));
 		if (f2.str() == "1" && (fator1.str() == "0" || fator2.str() == "0")) {
 			return false;
 		}		
@@ -515,10 +468,6 @@ class Exponencial {
 	}
 	double dx (double v) {
 		return exp( f(v) )*f.dx(v);
-	}
-	template<typename D>
-	auto v_dx() {
-		return Multiplica< Exponencial<F>, D > (Exponencial<F>(f), f.v_dx());
 	}
 	string str() const {
 		return "exp(" + f.str() + ")";
@@ -551,10 +500,6 @@ class Logaritmo {
 	double dx (double v) {
 		return (1/f(v)) * f.dx(v);
 	}
-	template<typename D>
-	auto v_dx() {
-		return Multiplica< Divide<Cte, F>, D > (Divide<Cte, F>(Cte(1), f), f.v_dx());
-	}
 	string str() const {
 		return "log(" + f.str() + ")";
 	}
@@ -566,7 +511,7 @@ class Logaritmo {
 	bool parenteses_str() { return false; }
 	bool parenteses_dx() { 
 		Divide<Cte, F> div (Cte(1), f);
-		Multiplica<Divide<Cte, F>, decltype(f.v_dx())> fator1(div, f.v_dx() );
+		Multiplica<Divide<Cte, F>, String> fator1(div, String(f.dx_str()) );
 		return fator1.parenteses_dx();
 	}
 	private: 
@@ -699,10 +644,8 @@ Logaritmo<F> log(F f) {
 	return Logaritmo<F>(f);
 }
 
-int main() {
-	auto f = exp( x * log( x - 8.0 ) + 1.0 );
-	//auto f =  1.0 / (sin(x)->*2 + cos(x)->*2)->*4 ;
-	cout << f.str() <<  endl << f.dx_str();
-  return 0;
+int main () {
+	auto f = exp( (x + 1.0)*(x - 1.0) )->*2 ;
+	cout << f.str();
+	cout << endl << f.dx_str() << endl;
 }
-
