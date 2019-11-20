@@ -86,15 +86,29 @@ public:
 		return c;
 	}
 	bool parenteses_str() { 
-		if (c.find("1/") != 0 && c.find("exp") != 0 && c.find("sin") != 0 && c.find("cos") != 0) {
+		cout << "avaliando parenteses str " << c;
+		if (c.find("/") != 0 && c.find("exp") != 0 && c.find("sin") != 0 && c.find("cos") != 0 && c.find("-sin") != 0 && c.find("(") != 0) {
+			if (c.find("+") == string::npos && c.find("-") == string::npos) {
+				cout << " false" << endl;
+				return false;
+			}
+			cout << " length" << endl;
 			return c.length() > 1; 
 		}
+		cout << " false" << endl;
 		return false;
 	}
 	bool parenteses_dx() { 
-		if (c.find("1/") != 0 && c.find("exp") != 0 && c.find("sin") != 0 && c.find("cos") != 0) {
+		cout << "avaliando parenteses dx " << c;
+		if (c.find("/") != 0 && c.find("exp") != 0 && c.find("sin") != 0 && c.find("cos") != 0 && c.find("-sin") != 0 && c.find("(") != 0) {
+			if (c.find("+") == string::npos && c.find("-") == string::npos) {
+				cout << " false" << endl;
+				return false;
+			}
+			cout << " length" << endl;
 			return c.length() > 1; 
 		}
+		cout << " false" << endl;
 		return false;
 	}
   
@@ -212,10 +226,7 @@ public:
 		return true;
 	}
 	bool parenteses_dx() { 
-		if (f1.str() == "0" || f2.str() == "0" || f1.dx_str() == "0" || f2.dx_str() == "0") {
-			return false;
-		}		
-		return true;
+		return false;
 	}
   
 private:
@@ -442,15 +453,8 @@ public:
 		return monta_parenteses_str(subs) + "/" + pot.str();
 	}
 	
-	bool parenteses_str() { return f2.str()!="1"; }
-	bool parenteses_dx() { 
-		Multiplica<String, F2> fator1 (String(f1.dx_str()), f2);
-		Multiplica<F1, String> fator2 (f1, String(f2.dx_str()));
-		if (f2.str() == "1" && (fator1.str() == "0" || fator2.str() == "0")) {
-			return false;
-		}		
-		return true;
-	}
+	bool parenteses_str() { return false; }
+	bool parenteses_dx() { return false;	}
   
 private:
 	F1 f1;
@@ -478,9 +482,7 @@ class Exponencial {
 	}
 	bool parenteses_str() { return false; }
 	bool parenteses_dx() { 
-		if (f.dx_str() == "1" || f.dx_str() == "0" ) { return false; } 
-		Multiplica<Exponencial<F>, String> fator1( Exponencial<F>(f), String(f.dx_str()) );
-		return fator1.parenteses_dx();
+	return false;
 	}
 	private:
 	F f;
@@ -510,9 +512,7 @@ class Logaritmo {
 	}
 	bool parenteses_str() { return false; }
 	bool parenteses_dx() { 
-		Divide<Cte, F> div (Cte(1), f);
-		Multiplica<Divide<Cte, F>, String> fator1(div, String(f.dx_str()) );
-		return fator1.parenteses_dx();
+		return false;
 	}
 	private: 
 	F f;
@@ -643,9 +643,10 @@ template<typename F>
 Logaritmo<F> log(F f) {
 	return Logaritmo<F>(f);
 }
-
 int main () {
-	auto f = exp( (x + 1.0)*(x - 1.0) )->*2 ;
+	//log((8.1/(x+1)^3-9.2)*(x+3)*sin(cos(x/3.14))+x)
+	//1/((8.1/(x+1)^3-9.2)*(x+3)*sin(cos(x/3.14))+x)*((-8.1*3*(x+1)^2/((x+1)^3)^2*(x+3)+8.1/(x+1)^3-9.2)*sin(cos(x/3.14))+(8.1/(x+1)^3-9.2)*(x+3)*cos(cos(x/3.14))*-sin(x/3.14)*3.14/3.14^2+1)
+	auto f =  log((8.1/(x+1.0)->*3 - 9.2 ) * (x + 3) *sin( cos( x / 3.14 ) +x))  ;
 	cout << f.str();
 	cout << endl << f.dx_str() << endl;
 }
