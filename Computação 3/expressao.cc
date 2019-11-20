@@ -167,9 +167,9 @@ template <typename F> Apply<F> apply( F f ) { return Apply<F>(f); }
 int main () {
 Matriz<100,1> a;
   Matriz<1,100> b;
-
+	auto tamanho = apply([](auto x){cout << x;});
   auto x = a * b;
-  x.print();
+  tamanho(x);
   //x.print();
   auto y = b * a;
   //y.print();
