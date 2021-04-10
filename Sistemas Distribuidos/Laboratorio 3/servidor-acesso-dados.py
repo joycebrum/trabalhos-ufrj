@@ -3,6 +3,8 @@
 import socket
 import select
 import sys
+import multiprocessing
+import os
 
 #localizacao do servidor
 HOST = 'localhost'
@@ -12,6 +14,9 @@ PORTA = 5010
 inputs = [sys.stdin]
 
 def startServer():
+    '''Inicia o socket de conexao por onde sera estabelecida a conexao com a
+    camada de processamento sempre que houver um novo cliente.
+    Saida: retorna o socket de conexao'''
     #criar descritor socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #Internet e TCP
 
@@ -19,7 +24,8 @@ def startServer():
     sock.bind((HOST, PORTA))
 
     #colocar-se em modo de espera
-    sock.listen(1)
+    sock.listen(5)
+    sock.setblocking(False)
     
     inputs.append(sock)
     return sock
@@ -32,6 +38,8 @@ def acceptConnection(sock):
     return newSock, endereco
 
 def answerRequisition(cliSock, endr):
+    '''Faz todo o tratamento do cliente ate o encerramento da conexao
+    Entrada: socket do cliente e endereco''' 
     while True:
         filename = cliSock.recv(1024) #recebe o nome do arquivo
         if not filename: break
@@ -53,18 +61,31 @@ def answerRequisition(cliSock, endr):
 
 def main():
     sock = startServer()
-    print("Servidor iniciado. Para encerra-lo digite exit")
+    print("Camada de acesso aos dados do servidor iniciada. Para encerra-la digite exit")
+    clients = []
     while True:
         read, write, conect = select.select(inputs, [], [])
         for req in read:
             if req == sock:
                 newSock, endr = acceptConnection(sock)
-                answerRequisition(newSock, endr)
+                #cria um fluxo dedicado ao cliente
+                client = multiprocessing.Process(target=answerRequisition, args=(newSock, endr))
+                client.start()
+                clients.append(client)		
             elif req == sys.stdin:
                 cmd = input()
-                if cmd == 'exit':
+                if cmd == 'exit': #encerra a aplicacao
+                    print("Aguardando clientes terminarem para encerrar")
+                    for c in clients:
+                        c.join()
+                    print("Encerrando...")
                     sock.close()
                     sys.exit()
+                if cmd == 'dir': #lista todos os arquivos do banco
+                    print("-------------------------------------")
+                    for f in os.listdir("db/"):
+                        print(f)
+                    print("-------------------------------------")
 
 
 main()

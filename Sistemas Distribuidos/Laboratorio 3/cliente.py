@@ -5,7 +5,7 @@ import json
 import ast
 
 HOST = 'localhost' 
-PORTA = 5000
+PORTA = 5020
 
 #criar o descritor de socket
 sock = socket.socket() #AF_INET, SOCK_STREAM por default
