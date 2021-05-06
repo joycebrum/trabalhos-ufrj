@@ -19,7 +19,7 @@ BYTES_LEN = 4
 username = ''
 avaiable_users = {}
 inputs = [sys.stdin]
-chunks_rest = []
+chunks_rest = {}
 
 #Garante o recebimento completo do json de resposta do servidor
 def recvall(sock):
@@ -151,9 +151,9 @@ def send_msg(user, msg, server):
 #indicar o tamanho da mensagem
 def recv_msg(sock):
     chunks = []
-    if chunks_rest:
-        chunks = chunks_rest.copy()
-        chunks_rest.clear()
+    if sock in chunks_rest and chunks_rest[sock]:
+        chunks = chunks_rest[sock]
+        chunks_rest[sock] = []
     recebidos = 0
     msg_len = BYTES_LEN
     while recebidos < msg_len:
@@ -165,7 +165,7 @@ def recv_msg(sock):
             size = str(b''.join(chunks), encoding='utf-8')[0:BYTES_LEN]
             msg_len = int(size)
     if recebidos > msg_len:
-        chunks_rest.append(chunks[-1][(msg_len-recebidos):])
+        chunks_rest[sock] = [chunks[-1][(msg_len-recebidos):]]
         chunks[-1] = chunks[-1][0:(msg_len-recebidos)]
     return str(b''.join(chunks), encoding='utf-8')[BYTES_LEN:]
 
