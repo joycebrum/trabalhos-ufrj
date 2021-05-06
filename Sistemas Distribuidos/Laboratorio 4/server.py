@@ -7,13 +7,15 @@ import json
 import threading
 
 HOST = 'localhost' 
-PORTA = 5010 #porta da camada atual de processamento de dados
+PORTA = 5000 #porta da camada atual de processamento de dados
 
 #entrada padrao como input inicial 
 inputs = [sys.stdin]
 clients = {}
+sockets = {}
 threads = []
 lock = threading.Lock()
+sockets_lock = threading.Lock()
 
 def recvall(sock):
     chunks = []
@@ -51,36 +53,40 @@ def acceptConnection(sock):
     newSock, endr = sock.accept()
     return newSock, endr
 
-def login(username, endr):
+def login(username, host, door, endr):
     response = 1
     lock.acquire()
     if username not in clients:
-        clients[username] = endr
+        clients[username] = [endr, (host, door)]
         response = 0
-        print('Usuário', username, 'conectado no endereço', endr)
+        print('Usuário', username, 'conectado no endereço', endr, 'recendo mensagens no endereço', clients[username][1])
     lock.release()
     return {'response': [response]}
 
 def logout(endr):
     lock.acquire()
-    username = list(clients.keys())[list(clients.values()).index(endr)]
-    clients.pop(username, None)
+    #salvar o endereço do socket tbm e buscar pelo endereço do socket
+    usernames = [key for key in clients.keys() if clients[key][0] == endr]
+    if usernames: clients.pop(usernames[0], None) 
     lock.release()
-    print('Usuário', username, 'desconectado do endereço', endr)
-
+    if usernames:
+        sockets_lock.acquire()
+        sockets.pop(usernames[0], None) 
+        sockets_lock.release()
+        print('Usuário', usernames[0], 'desconectado do endereço', endr)
 def get_users():
     lock.acquire()
-    curr_users = [[key, clients[key][0], clients[key][1]] for key in clients]
+    curr_users = [[key, clients[key][1][0], clients[key][1][1]] for key in clients]
     lock.release()
     return { 'response': curr_users }
 
 def get_user(username):
-    user = None
+    user_data = None
     lock.acquire()
-    if username in clients: user = clients[username]
+    if username in clients: user_data = clients[username]
     lock.release()
-    if not user: return {'response': [] }
-    return {'response': [username, user[0], user[1]] }
+    if not user_data: return {'response': [] }
+    return {'response': [username, user_data[1][0], user_data[1][1]] }
     
 def answerRequisition(newSock, endr):
     '''Analiza a requisição para definir qual a operação que deve ser realizada
@@ -88,10 +94,15 @@ def answerRequisition(newSock, endr):
     while True:
         requisition = recvall(newSock)
         if not requisition: break
-
+    
         oper = requisition['requisition']['operation']
         if oper == 'login':
-            answer = login(requisition['requisition']['arguments'][0], endr)
+            args = requisition['requisition']['arguments']
+            answer = login(args[0], args[1], args[2], endr)
+            if answer['response'][0] == 0:
+                sockets_lock.acquire()
+                sockets[args[0]] = newSock
+                sockets_lock.release()
         elif oper == 'users':
             answer = get_users()
         elif oper == 'user':
@@ -102,26 +113,30 @@ def answerRequisition(newSock, endr):
     newSock.close()
         
 def main():
-    sock = startServer()
+    try:
+        sock = startServer()
 
-    while True:
-        read, write, conect = select.select(inputs, [], [])
-        for req in read:
-            if req == sock:
-                newSock, endr = acceptConnection(sock)
-                #cria um fluxo dedicado ao cliente
-                thread = threading.Thread(target=answerRequisition, args=(newSock, endr))
-                thread.start()
-                threads.append(thread)
-                
-            elif req == sys.stdin:
-                cmd = input()
-                if cmd == 'exit':
-                    print("Aguardando clientes terminarem para encerrar")
-                    for c in threads:
-                        c.join()
-                    print("Encerrando...")
-                    sock.close()
-                    sys.exit()
+        while True:
+            read, write, conect = select.select(inputs, [], [])
+            for req in read:
+                if req == sock:
+                    newSock, endr = acceptConnection(sock)
+                    #cria um fluxo dedicado ao cliente
+                    thread = threading.Thread(target=answerRequisition, args=(newSock, endr))
+                    thread.start()
+                    threads.append(thread)
+                    
+                elif req == sys.stdin:
+                    cmd = input()
+                    if cmd == 'exit':
+                        print("Aguardando clientes terminarem para encerrar")
+                        for c in threads:
+                            c.join()
+                        print("Encerrando...")
+                        sock.close()
+                        sys.exit()
+    except:
+        sock.close()
+        
 main()                       
     
