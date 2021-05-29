@@ -28,14 +28,14 @@ def main():
         process = multiprocessing.Process(target=child_process, args=(HOST, port))
         process.start()
         processes.append(process)
-        
+
     while True:
         op = input("Digite uma operação(list, ou 'fim' para terminar): ")
         if op == 'list':
             for port in avaiable_ports:
                 print(HOST +':' + str(port))
         elif op == 'fim':
-            chord_process.terminate()   
+            chord_process.terminate()
             chord_process.join()
             for p in processes:
                 p.terminate()

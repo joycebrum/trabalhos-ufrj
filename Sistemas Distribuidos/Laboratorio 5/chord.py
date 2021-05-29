@@ -20,14 +20,14 @@ class ChordRing(rpyc.Service):
         return key
     def exposed_get_ring(self):
         return self.nodes
-    def exposed_get_successor(self, key):    
+    def exposed_get_successor(self, key):
         j = key
         for i in range(0, 16):
             j = (j + 1) % 16
             if len(self.nodes[j]) > 0:
                 return j, self.nodes[j]
     def exposed_get_finger_table(self, n):
-        finger=[]   
+        finger=[]
         for k in range(0, 4):
             successor = (n + pow(2, k)) % 16
             if not self.nodes[successor]:
@@ -54,10 +54,10 @@ class ChordRing(rpyc.Service):
             pos = self.exposed_get_successor(pos)[0]
         self.nodes[pos].append((key, value))
         return pos
-    
+
 class Process(rpyc.Service):
     exposed_aux = 10
-    def __init__(self, identifier, chord): 
+    def __init__(self, identifier, chord):
         self.identifier = identifier
         self.chord = chord
         self.key = self.chord.root.add_node(identifier)
@@ -67,7 +67,7 @@ class Process(rpyc.Service):
     	print("Conexao estabelecida com Process.")
     def on_disconnect(self, conx):
     	print("Conexao encerrada com Process.")
-    	
+
     def exposed_identifier(self):
         return self.identifier
     def exposed_get_ring(self):
@@ -91,7 +91,7 @@ class Process(rpyc.Service):
             self.finger = self.chord.root.get_finger_table(self.key)
             print('Finger table para o nó:', self.key, self.finger)
         key = self.chord.root.hash_function(identifier)
-        
+
         if self.is_in_circular_interval(key, self.key, self.successor[0]):
             return self.successor[0]
         else:
@@ -104,16 +104,24 @@ class Process(rpyc.Service):
                 ans = successor_node.root.find_successor(identifier)
                 return ans
         return None
+
+    def exposed_search_in_node(self, identifier):
+        value = self.chord.root.search_in_node(self.key, identifier)
+        if value: return value
+        return None
+
     def exposed_search_identifier(self, identifier):
         position = self.exposed_find_successor(identifier)
-        if position:
-            value = self.chord.root.search_in_node(position, identifier)
+        endr = self.chord.root.get_address_node(position)
+        if endr:
+            endr = endr.split(':')
+            successor_node = rpyc.connect(endr[0], endr[1])
+            value = successor_node.root.search_in_node(identifier)
             if value: return position, value
         return None
 
     def exposed_insert(self, key, value):
         return self.chord.root.insert(key, value)
-        
 
 def run_chord():
     chord = ThreadedServer(ChordRing(), port = CHORD_PORT)
