@@ -50,7 +50,7 @@ class Gerenciador:
 
     elif (jogou_carta_especial and jogou_reverso) or (jogou_carta_especial and jogou_escolhacor): # Carta reverso ou carta escolha cor
       return (atual_jogador + self.orientacao_jogo) % self.n_de_jogadores
-    
+
     else: # Cartas especiais que não são reverso
       return (atual_jogador + 2*self.orientacao_jogo) % self.n_de_jogadores
 
@@ -121,7 +121,7 @@ class Gerenciador:
       prox_jogador = self.calcularProxJogador(atual_jogador, True, False, False)
       cor = self.jogadores[atual_jogador].escolher_cor_de_coringa()
       carta.cor = cor
-      
+
 
     return prox_jogador
 
@@ -137,18 +137,18 @@ class Gerenciador:
     atual_jogador = primeiro_jogador
 
     while not self.TERMINAROJOGO:
-      
+
       #### Código das ações do jogador atual ####
-      
+
       print("-----------------------------------------------")
       print("Jogador " + str(atual_jogador) + ", é a sua vez!")
       print("O topo da pilha da mesa é: " + str(self.pilha_mesa[0]))
 
       print("Suas cartas são: " + str(self.jogadores[atual_jogador].cartas))
-      
+
       possiveis_cartas_para_jogar = self.jogadores[atual_jogador].selecionar(self.pilha_mesa[0])
       print("Suas possíveis cartas a jogar são: " + str(possiveis_cartas_para_jogar))
-      
+
       # Caso o jogador não tenha cartas para jogar, o gerente compra uma para ele. Caso a pilha de compra esteja vazia, a pilha de mesa
       # vira a de compra antes de passar uma carta para o jogador atual.
       if(not possiveis_cartas_para_jogar):
@@ -157,9 +157,9 @@ class Gerenciador:
 
         if(len(self.pilha_compra) < 1):
           self.virarPilhaMesaParaCompra() # Caso a pilha de compra esteja vazia, a pilha de mesa será embaralhada e virará a de compra.
-        
+
         self.jogadores[atual_jogador].comprar(1, self.pilha_compra)
-        
+
         possiveis_cartas_para_jogar = self.jogadores[atual_jogador].selecionar(self.pilha_mesa[0])
         print("Suas cartas agora são: " + str(self.jogadores[atual_jogador].cartas))
         print("Suas possíveis cartas a jogar agora são: " + str(possiveis_cartas_para_jogar))
@@ -175,7 +175,7 @@ class Gerenciador:
         print("Você não tem cartas a jogar mesmo tendo comprado uma nova. Por isso a vez será passada.")
         atual_jogador = self.calcularProxJogador(atual_jogador)
         continue
-      
+
       # Verifica se o jogador atual é o vencedor. Caso seja, acaba o jogo.
       if(self.verificarVencedor(self.jogadores[atual_jogador])):
         self.TERMINAROJOGO = True
@@ -183,9 +183,9 @@ class Gerenciador:
         print("-----------------------------------------------")
         print("Jogador " + str(atual_jogador) + " ganhou!!! Parabéns!")
         break
-      
+
       atual_jogador = prox_jogador
-     
+
 if __name__ == "__main__":
   gerenciador = Gerenciador()
   gerenciador.gerenciarJogo()
