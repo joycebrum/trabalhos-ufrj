@@ -5,13 +5,20 @@ from Jogador import Jogador
 from Baralho import Carta
 from Baralho import Monte
 from random import randint
+from unittest.mock import patch
 
 class UnitTestsFromGerenciador(unittest.TestCase):
   def setUp(self):
     self.gerenciador = Gerenciador()
     self.monte = Monte()
 
-# test verificarVencedor
+  def hand_consistent(self, before, after):
+    for card in before:
+      if card not in after:
+        return False
+    return True
+
+#test verificarVencedor
   def test_winner(self):
     # Given
     jogador = Jogador([])
@@ -332,52 +339,89 @@ class UnitTestsFromGerenciador(unittest.TestCase):
     self.assertTrue(checkFirstCardType)
     self.assertTrue(checkFirstCardType)
 #test açãoJogada
-  @mock.patch("Gerenciador.input", create = True)
+  @mock.patch("builtins.input", create = True)
   def test_play_plus_two(self, mocked_input):
     # Given
     mocked_input.side_effect = ["4"]
     self.gerenciador.inicializarJogo()
     actualPlayer = 0
     buyingPlayer = 1
+    direction = self.gerenciador.orientacao_jogo
     buyingPlayerHandBeforeBuy = self.gerenciador.jogadores[buyingPlayer].cartas.copy()
     # When
     carta = Carta("Vermelho", "+2")
-    self.gerenciador.acaoJogada(actualPlayer, carta)
+    next_player = self.gerenciador.acaoJogada(actualPlayer, carta)
     buyingPlayerHandAfterBuy = self.gerenciador.jogadores[buyingPlayer].cartas.copy()
 
-    testCards = True
-    for card in buyingPlayerHandBeforeBuy:
-      if card in buyingPlayerHandAfterBuy:
-        continue
-      else:
-        testCards = False
-        break
     # Then
     self.assertEqual(len(buyingPlayerHandBeforeBuy)+2, len(buyingPlayerHandAfterBuy))
-    self.assertTrue(testCards)
+    self.assertTrue(self.hand_consistent(buyingPlayerHandBeforeBuy, buyingPlayerHandAfterBuy))
+    self.assertEqual(self.gerenciador.orientacao_jogo, direction)
+    self.assertEqual(next_player, (actualPlayer + 2*direction) % self.gerenciador.n_de_jogadores)
 
-  @mock.patch("Gerenciador.input", create = True, side_effect=['4', 'verde'])
+  @patch("builtins.input", side_effect=['4', 'verde'])
   def test_play_plus_four(self, mocked_input):
     # Given
     self.gerenciador.inicializarJogo()
     actualPlayer = 0
     buyingPlayer = 1
+    direction = self.gerenciador.orientacao_jogo
     buyingPlayerHandBeforeBuy = self.gerenciador.jogadores[buyingPlayer].cartas.copy()
     # When
     carta = Carta("preto", "+4")
-    self.gerenciador.acaoJogada(actualPlayer, carta)
+    next_player = self.gerenciador.acaoJogada(actualPlayer, carta)
     buyingPlayerHandAfterBuy = self.gerenciador.jogadores[buyingPlayer].cartas.copy()
 
-    testCards = True
-    for card in buyingPlayerHandBeforeBuy:
-      if card in buyingPlayerHandAfterBuy:
-        continue
-      else:
-        testCards = False
-        break
     # Then
-    self.assertEqual(len(buyingPlayerHandBeforeBuy)+2, len(buyingPlayerHandAfterBuy))
-    self.assertTrue(testCards)
+    self.assertEqual(len(buyingPlayerHandBeforeBuy)+4, len(buyingPlayerHandAfterBuy))
+    self.assertTrue(self.hand_consistent(buyingPlayerHandBeforeBuy, buyingPlayerHandAfterBuy))
+    self.assertEqual(self.gerenciador.orientacao_jogo, direction)
+    self.assertEqual(next_player, (actualPlayer + 2*direction) % self.gerenciador.n_de_jogadores)
+    self.assertEqual(carta.cor, "verde")
+
+  @patch("builtins.input", side_effect=['4'])
+  def test_play_reverse(self, mocked_input):
+    # Given
+    self.gerenciador.inicializarJogo()
+    actualPlayer = 0
+    direction = self.gerenciador.orientacao_jogo
+    # When
+    carta = Carta("azul", "reverso")
+    next_player = self.gerenciador.acaoJogada(actualPlayer, carta)
+
+    # Then
+    self.assertEqual(self.gerenciador.orientacao_jogo, -direction)
+    self.assertEqual(next_player, (actualPlayer - direction) % self.gerenciador.n_de_jogadores)
+
+  @patch("builtins.input", side_effect=['4'])
+  def test_play_block(self, mocked_input):
+    # Given
+    self.gerenciador.inicializarJogo()
+    actualPlayer = 0
+    direction = self.gerenciador.orientacao_jogo
+    # When
+    carta = Carta("azul", "pula")
+    next_player = self.gerenciador.acaoJogada(actualPlayer, carta)
+
+    # Then
+    self.assertEqual(self.gerenciador.orientacao_jogo, direction)
+    self.assertEqual(next_player, (actualPlayer + 2*direction) % self.gerenciador.n_de_jogadores)
+
+  @patch("builtins.input", side_effect=['4', 'azul'])
+  def test_play_chose(self, mocked_input):
+    # Given
+    self.gerenciador.inicializarJogo()
+    actualPlayer = 0
+    direction = self.gerenciador.orientacao_jogo
+
+    # When
+    carta = Carta("preto", "escolhacor")
+    next_player = self.gerenciador.acaoJogada(actualPlayer, carta)
+
+    # Then
+    self.assertEqual(self.gerenciador.orientacao_jogo, direction)
+    self.assertEqual(next_player, (actualPlayer + direction) % self.gerenciador.n_de_jogadores)
+    self.assertEqual(carta.cor, "azul")
 
 suite = unittest.TestLoader().loadTestsFromTestCase(UnitTestsFromGerenciador)
 unittest.TextTestRunner().run(suite)
