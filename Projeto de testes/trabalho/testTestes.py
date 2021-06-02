@@ -7,10 +7,31 @@ from Baralho import Monte
 from random import randint
 from unittest.mock import patch
 
+class MockMonte():
+    def __init__(self, tinyCase = False, specificEndCardCase = False, firstCard=Carta("amarelo", "1")):
+      if tinyCase:
+        self._monte = [Carta("vermelho", "2"),Carta("vermelho", "2"),Carta("vermelho", "2"),Carta("vermelho", "2"),Carta("amarelo", "1"),Carta("amarelo", "1"),Carta("amarelo", "1"),Carta("amarelo", "1")]
+      elif specificEndCardCase:
+        self._monte = [Carta("vermelho", "2"),Carta("amarelo", "4"),Carta("vermelho", "1"),Carta("vermelho", "1"),Carta("vermelho", "5"),Carta("vermelho", "5"),Carta("amarelo", "1"),Carta("vermelho", "1")]
+      else:
+        self._monte = []
+        for i in range(0,50):
+          self._monte.append(Carta("amarelo", "1"))
+        self._monte.append(firstCard)
+
+    def getMonte(self):
+        temp = []
+        for x in self._monte:
+            temp.append(x)
+        return temp
+
+    def desempilhaMonte(self):
+        return self._monte.pop()
+
 class UnitTestsFromGerenciador(unittest.TestCase):
   def setUp(self):
-    self.gerenciador = Gerenciador()
-    self.monte = Monte()
+    self.monte = MockMonte()
+    self.gerenciador = Gerenciador(self.monte)
 
   def hand_consistent(self, before, after):
     for card in before:
@@ -116,7 +137,6 @@ class UnitTestsFromGerenciador(unittest.TestCase):
     # Then
     self.assertEqual(nextPlayer, expectedNextPlayer)
 
-
   def test_next_player_special_reverse_direita(self):
     # Given
     self.gerenciador.n_de_jogadores = 5
@@ -172,7 +192,6 @@ class UnitTestsFromGerenciador(unittest.TestCase):
 
     # Then
     self.assertEqual(nextPlayer, expectedNextPlayer)
-
 
   def test_next_player_special_chose_color_direita(self):
     # Given
@@ -230,7 +249,6 @@ class UnitTestsFromGerenciador(unittest.TestCase):
     # Then
     self.assertEqual(nextPlayer, expectedNextPlayer)
 
-
   def test_next_player_special_other_direita(self):
     # Given
     self.gerenciador.n_de_jogadores = 5
@@ -286,6 +304,47 @@ class UnitTestsFromGerenciador(unittest.TestCase):
 
     # Then
     self.assertEqual(nextPlayer, expectedNextPlayer)
+
+  def test_three_default_values(self):
+    # Given
+    self.gerenciador.n_de_jogadores = 5
+    self.gerenciador.orientacao_jogo = self.gerenciador.DIREITA
+
+    # When
+    player = 0
+    orientacao = self.gerenciador.orientacao_jogo
+    expectedNextPlayer = (player + self.gerenciador.orientacao_jogo) % self.gerenciador.n_de_jogadores
+    nextPlayer = self.gerenciador.calcularProxJogador(player)
+
+    # Then
+    self.assertEqual(nextPlayer, expectedNextPlayer)
+
+  def test_two_default_values(self):
+    # Given
+    self.gerenciador.n_de_jogadores = 5
+    self.gerenciador.orientacao_jogo = self.gerenciador.DIREITA
+
+    # When
+    player = 0
+    orientacao = self.gerenciador.orientacao_jogo
+    expectedNextPlayer = (player + (2*self.gerenciador.orientacao_jogo)) % self.gerenciador.n_de_jogadores
+    nextPlayer = self.gerenciador.calcularProxJogador(player, True)
+
+    # Then
+    self.assertEqual(nextPlayer, expectedNextPlayer)
+
+  def test_one_default_values(self):
+    # Given
+    self.gerenciador.n_de_jogadores = 5
+    self.gerenciador.orientacao_jogo = self.gerenciador.DIREITA
+
+    # When
+    player = 2
+    orientacao = self.gerenciador.orientacao_jogo
+    expectedNextPlayer = (player + (2*self.gerenciador.orientacao_jogo)) % self.gerenciador.n_de_jogadores
+    nextPlayer = self.gerenciador.calcularProxJogador(player, True, False)
+    # Then
+    self.assertEqual(nextPlayer, expectedNextPlayer)
 #test inicializarJogo
   @mock.patch("Gerenciador.input", create = True)
   def test_inicialzar_jogo(self, mocked_input):
@@ -311,12 +370,96 @@ class UnitTestsFromGerenciador(unittest.TestCase):
     self.assertTrue(len(self.gerenciador.pilha_compra) != 0)
     self.assertTrue(len(self.gerenciador.pilha_mesa) > 0)
     self.assertTrue(checkFirstCardType)
+
+  @mock.patch("Gerenciador.input", create = True)
+  def test_inicialzar_jogo_plus_two_first(self, mocked_input):
+    # Given
+    monte = MockMonte(firstCard = Carta("amarelo", "+2"))
+    self.gerenciador = Gerenciador(monte)
+    mocked_input.side_effect = ["4"]
+    # When
+    self.gerenciador.inicializarJogo()
+
+    checkFirstCardType = True
+    firstCardType = self.gerenciador.pilha_mesa[-1].tipo
+    if(firstCardType == "+2" or firstCardType == "reverso" or firstCardType == "pula" or firstCardType == "escolhacor" or firstCardType == "+4"):
+      checkFirstCardType = False
+
+    # Then
+    self.assertTrue(checkFirstCardType)
+
+  @mock.patch("Gerenciador.input", create = True)
+  def test_inicialzar_jogo_plus_four_first(self, mocked_input):
+    # Given
+    monte = MockMonte(firstCard = Carta("preto", "+4"))
+    self.gerenciador = Gerenciador(monte)
+    mocked_input.side_effect = ["4"]
+    # When
+    self.gerenciador.inicializarJogo()
+
+    checkFirstCardType = True
+    firstCardType = self.gerenciador.pilha_mesa[-1].tipo
+    if(firstCardType == "+2" or firstCardType == "reverso" or firstCardType == "pula" or firstCardType == "escolhacor" or firstCardType == "+4"):
+      checkFirstCardType = False
+
+    # Then
+    self.assertTrue(checkFirstCardType)
+
+  @mock.patch("Gerenciador.input", create = True)
+  def test_inicialzar_jogo_choose_color_first(self, mocked_input):
+    # Given
+    monte = MockMonte(firstCard = Carta("preto", "escolhacor"))
+    self.gerenciador = Gerenciador(monte)
+    mocked_input.side_effect = ["4"]
+    # When
+    self.gerenciador.inicializarJogo()
+
+    checkFirstCardType = True
+    firstCardType = self.gerenciador.pilha_mesa[-1].tipo
+    if(firstCardType == "+2" or firstCardType == "reverso" or firstCardType == "pula" or firstCardType == "escolhacor" or firstCardType == "+4"):
+      checkFirstCardType = False
+
+    # Then
+    self.assertTrue(checkFirstCardType)
+
+  @mock.patch("Gerenciador.input", create = True)
+  def test_inicialzar_jogo_reverse_first(self, mocked_input):
+    # Given
+    monte = MockMonte(firstCard = Carta("amarelo", "reverso"))
+    self.gerenciador = Gerenciador(monte)
+    mocked_input.side_effect = ["4"]
+    # When
+    self.gerenciador.inicializarJogo()
+
+    checkFirstCardType = True
+    firstCardType = self.gerenciador.pilha_mesa[-1].tipo
+    if(firstCardType == "+2" or firstCardType == "reverso" or firstCardType == "pula" or firstCardType == "escolhacor" or firstCardType == "+4"):
+      checkFirstCardType = False
+
+    # Then
+    self.assertTrue(checkFirstCardType)
+
+  @mock.patch("Gerenciador.input", create = True)
+  def test_inicialzar_jogo_jump_first(self, mocked_input):
+    # Given
+    monte = MockMonte(firstCard = Carta("amarelo", "pula"))
+    self.gerenciador = Gerenciador(monte)
+    mocked_input.side_effect = ["4"]
+    # When
+    self.gerenciador.inicializarJogo()
+
+    checkFirstCardType = True
+    firstCardType = self.gerenciador.pilha_mesa[-1].tipo
+    if(firstCardType == "+2" or firstCardType == "reverso" or firstCardType == "pula" or firstCardType == "escolhacor" or firstCardType == "+4"):
+      checkFirstCardType = False
+
+    # Then
     self.assertTrue(checkFirstCardType)
 
   @mock.patch("Gerenciador.input", create = True)
   def test_inicialzar_jogo_wrong_number_of_players(self, mocked_input):
     # Given
-    mocked_input.side_effect = ["1", "1", "4"]
+    mocked_input.side_effect = ["1", "10", "4", "fim"]
     # When
     self.gerenciador.inicializarJogo()
 
@@ -334,6 +477,8 @@ class UnitTestsFromGerenciador(unittest.TestCase):
         break
 
     # Then
+    allInputsReaden = mocked_input()
+    self.assertEqual(allInputsReaden, "fim")
     self.assertTrue(len(self.gerenciador.pilha_compra) != 0)
     self.assertTrue(len(self.gerenciador.pilha_mesa) > 0)
     self.assertTrue(checkFirstCardType)
@@ -422,6 +567,83 @@ class UnitTestsFromGerenciador(unittest.TestCase):
     self.assertEqual(self.gerenciador.orientacao_jogo, direction)
     self.assertEqual(next_player, (actualPlayer + direction) % self.gerenciador.n_de_jogadores)
     self.assertEqual(carta.cor, "azul")
+
+  @patch("builtins.input", side_effect=['4'])
+  def test_play_number(self, mocked_input):
+    # Given
+    self.gerenciador.inicializarJogo()
+    actualPlayer = 0
+    direction = self.gerenciador.orientacao_jogo
+
+    # When
+    carta = Carta("azul", "4")
+    next_player = self.gerenciador.acaoJogada(actualPlayer, carta)
+
+    # Then
+    self.assertEqual(self.gerenciador.orientacao_jogo, direction)
+    self.assertEqual(next_player, (actualPlayer + direction) % self.gerenciador.n_de_jogadores)
+#test gerenciarJogo
+  def mockRandom(initial, final):
+    return final
+
+  @patch("builtins.input", side_effect=['2','1','1','1', 'fim'])
+  @patch("random.randint", mockRandom)
+  def test_gerenciar_jogo_finished(self, mock_input):
+    # Given
+    self.gerenciador.qtd_cartas_iniciais = 2
+    # When
+    self.gerenciador.gerenciarJogo()
+    # Then
+    allInputsReaden = mock_input()
+    self.assertEqual(allInputsReaden, "fim")
+    self.assertTrue(self.gerenciador.TERMINAROJOGO)
+
+  @patch("builtins.input", side_effect=['2','1','1','1','1', 'fim'])
+  def test_gerenciar_jogo_no_cards_to_buy(self, mock_input):
+    # Given
+    monte = MockMonte(tinyCase = True)
+    self.gerenciador = Gerenciador(monte)
+    self.gerenciador.qtd_cartas_iniciais = 3
+    # When
+    self.gerenciador.gerenciarJogo(0)
+    # Then
+    allInputsReaden = mock_input()
+    self.assertEqual(allInputsReaden, "fim")
+    self.assertTrue(self.gerenciador.TERMINAROJOGO)
+
+  @patch("builtins.input", side_effect=['2','1','1','1','1','1', 'fim'])
+  def test_gerenciar_jogo_specific_end_card(self, mock_input):
+    monte = MockMonte(specificEndCardCase = True)
+    self.gerenciador = Gerenciador(monte)
+    self.gerenciador.qtd_cartas_iniciais = 3
+    # When
+    self.gerenciador.gerenciarJogo(0)
+    # Then
+    topo = self.gerenciador.pilha_mesa[0]
+    allInputsReaden = mock_input()
+    self.assertEqual(allInputsReaden, "fim")
+    self.assertTrue(self.gerenciador.TERMINAROJOGO)
+    self.assertEqual(topo.tipo, "5")
+    self.assertEqual(topo.cor, "vermelho")
+#test preJogo
+
+  def test_pre_game(self):
+    # Given
+    # When
+    # Then
+    self.assertEqual(self.gerenciador.ESQUERDA, -1)
+    self.assertEqual(self.gerenciador.DIREITA, 1)
+    self.assertEqual(self.gerenciador.n_de_jogadores, 2)
+    self.assertEqual(self.gerenciador.jogadores, [])
+    self.assertEqual(self.gerenciador.orientacao_jogo, self.gerenciador.DIREITA)
+    self.assertEqual(self.gerenciador.pilha_compra, [])
+    self.assertEqual(self.gerenciador.pilha_mesa, [])
+    self.assertEqual(self.gerenciador.jogou_carta_preta, False)
+    self.assertEqual(self.gerenciador.qtd_cartas_iniciais, 7)
+    self.assertEqual(self.gerenciador.TERMINAROJOGO, False)
+
+
+
 
 suite = unittest.TestLoader().loadTestsFromTestCase(UnitTestsFromGerenciador)
 unittest.TextTestRunner().run(suite)

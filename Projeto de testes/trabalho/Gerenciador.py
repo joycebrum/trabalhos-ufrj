@@ -5,7 +5,7 @@ from Jogador import Jogador
 
 class Gerenciador:
 
-  def __init__(self):
+  def __init__(self, monte = Monte()):
     self.ESQUERDA = -1
     self.DIREITA = 1
     self.TERMINAROJOGO = False
@@ -16,6 +16,7 @@ class Gerenciador:
     self.pilha_mesa = []
     self.jogou_carta_preta = False
     self.qtd_cartas_iniciais = 7
+    self.monte = monte
 
   def verificarVencedor(self, jogador):
     """
@@ -59,7 +60,7 @@ class Gerenciador:
         Inicializa o jogo: cria as cartas e as distribui para os jogadores e as pilhas.
     """
     # Inicializa a pilha de descarte do jogo construindo o objeto "monte" e retirando 1 carta
-    monte = Monte()
+    monte = self.monte
 
     while True:
       primeira_carta = monte.desempilhaMonte()
@@ -125,16 +126,17 @@ class Gerenciador:
 
     return prox_jogador
 
-  def gerenciarJogo(self):
+  def gerenciarJogo(self, primeiro_jogador = None):
     """
         Gerencia o jogo: chama as funções do jogador e faz o efeito de suas ações, dá a vez para o próximo jogador.
         Nesta lógica, as variáveis primeiro_jogador, atual_jogador e prox_jogador indicam a posição do objeto Jogador na lista jogadores.
     """
     self.inicializarJogo()
 
-    primeiro_jogador = random.randint(0, self.n_de_jogadores-1)
-
-    atual_jogador = primeiro_jogador
+    if primeiro_jogador == None:
+      atual_jogador = random.randint(0, self.n_de_jogadores-1)
+    else:
+      atual_jogador = primeiro_jogador
 
     while not self.TERMINAROJOGO:
 
@@ -186,6 +188,6 @@ class Gerenciador:
 
       atual_jogador = prox_jogador
 
-if __name__ == "__main__":
-  gerenciador = Gerenciador()
-  gerenciador.gerenciarJogo()
+# if __name__ == "__main__":
+#   gerenciador = Gerenciador()
+#   gerenciador.gerenciarJogo()
