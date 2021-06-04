@@ -4,12 +4,34 @@ CREATE (a:Music {name:'Love Story', singer:'Taylor Swift'}) RETURN a
 create a term
 CREATE (t:Term {value:'story'}) RETURN t
 
+------------------------------------------------------------------------------------------------------------------
+
 link term and document
+
 MATCH (a:Music {name:'Love Story', singer: 'Taylor Swift'}), (b:Term {value:'story'})
 MERGE (b)-[r:APPEARS_IN]->(a) SET r.relevance = 0
 RETURN a,r,b
+
+relevance = 0 -> music name
+relevance = 1 -> singer
+relevance = 2 -> lyric
+
+------------------------------------------------------------------------------------------------------------------
 
 update a term
 MERGE (a:Term {value:'Love'})  
 ON MATCH SET a.value ='love'
 RETURN a
+
+------------------------------------------------------------------------------------------------------------------
+
+get all nodes
+MATCH (n) RETURN n
+
+get all musics
+MATCH (m:Music) return m
+
+------------------------------------------------------------------------------------------------------------------
+
+remove all nodes and relationships
+MATCH (n) DETACH DELETE n
