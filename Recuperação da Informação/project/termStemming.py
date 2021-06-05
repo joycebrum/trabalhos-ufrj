@@ -29,8 +29,8 @@ def stemming(terms):
 
 
 def pre_process(string):
-    stopwords = ['of', 'the', 'a', 'an', 'on', 'in', 'out', 'under', 'am', 'is', 'are', 'was', 'were', '\'m', '\'re', '\'ll', '\'s', 'and', 
-    'oh', 'to', 'but', '\'', 'yeah']
+    stopwords = ['of', 'the', 'a', 'an', 'on', 'in', 'out', 'under', 'am', 'is', 'are', 'was', 'were', '\'m', '\'re', '\'ll', '\'s', '\'ve', 'and', 
+    'oh', 'oh-oh', 'to', 'but', '\'', 'yeah']
     separators = clean_separators([' ',',','.','!','?',':',';','/','-','\\n', '\'', '\"', '\(', '\)'])
     terms = remove_stop_words(string.lower(), stopwords)
     terms = generate_tokens(terms, separators)

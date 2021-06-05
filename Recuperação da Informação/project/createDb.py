@@ -1,4 +1,4 @@
-import musicGraphDb as db
+import dbOperations as db
 import termStemming as stemm
 
 #call it once just if you need to initiate de database
@@ -23,3 +23,4 @@ def initiateDb():
 
 if __name__ == "__main__":
     initiateDb()
+    db.close()
