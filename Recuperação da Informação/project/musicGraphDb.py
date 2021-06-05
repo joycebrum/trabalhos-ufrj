@@ -2,16 +2,17 @@ from neo4j import GraphDatabase
 from bottle import get, post, run, request, response, static_file
 from py2neo import Graph
 import termStemming as stemm
+import json
 
 driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "130598"), encrypted=False)
 graph = Graph(password = "130598")
 
 def close():
     driver.close()
-    
+
 @get("/")
 def get_index():
-    return static_file("index.html", root="static")
+    return static_file("./index.html", root="static")
 
 @get("/graph")
 def get_graph():
@@ -20,32 +21,55 @@ def get_graph():
     "RETURN t, m ")
     return results
 
-@get("/musics")
-def get_musics():
+@get("/search")
+def get_search():
+    try:
+        q = request.query["q"]
+    except KeyError:
+        q = ''
     results = graph.run(
-    "MATCH (m:Music) RETURN m ")
-    return results
+        "MATCH (m:Music)-[r:BELONGS_TO]->(s:Singer) "
+        "RETURN m.name as name, s.name as singer")
+        # "WHERE music.name =~ {title} "
+        # "RETURN movie", {"title": "(?i).*" + q + ".*"})
+    response.content_type = "application/json"
+    return json.dumps([{"music": { 'name': row["name"], 'singer': row['singer']}} for row in results])
 
-@post("/music/<name>/<singer>")
-def create_music(name, singer):
+@get("/lyrics/<name>/<singer>")
+def get_lyrics(name, singer):
+    results = graph.run(
+    "MATCH (m:Music {name:\"%s\"})-[r:BELONGS_TO]->(s:Singer {name: \"%s\"}) RETURN m.lyrics" %(name, singer))
+    response.content_type = "application/json"
+    return json.dumps([{"lyrics": row } for row in results])
+
+def create_singer(name):
     return graph.run(
-        "MERGE (a:Music {name:'%s', singer:'%s'}) RETURN a" %(name, singer)
+        "MERGE (s:Singer {name:'%s'}) RETURN s" %(name)
     )
 
-@post("/term/<term>")
+def create_music(name, lyrics):
+    return graph.run(
+        "MERGE (a:Music {name:\"%s\", lyrics: \"%s\"}) RETURN a" %(name, lyrics)
+    )
+
 def create_term(term):
     return graph.run(
         "MERGE (t:Term {value:'%s'}) RETURN t" %(term)
     )
 
-@post("/<term>/<relevance>/appearsin/<name>/<singer>")
-def create_associate(term, relevance, name, singer):
+def create_term_music_association(term, relevance, name):
     return graph.run(
-        "MATCH (m:Music {name:'%s', singer: '%s'}), (t:Term {value:'%s'}) "
+        "MATCH (m:Music {name:\"%s\"}), (t:Term {value:'%s'}) "
         "MERGE (t)-[r:APPEARS_IN]->(m) SET r.relevance = %s "
-        "RETURN t,r,m" %(name, singer, term, relevance)
+        "RETURN t,r,m" %(name, term, relevance)
     )
 
+def create_singer_association(music, singer):
+    return graph.run(
+        "MATCH (m:Music {name:\"%s\"}), (s:Singer {name:'%s'}) "
+        "MERGE (m)-[r:BELONGS_TO]->(s) "
+        "RETURN m,r,s" %(music, singer)
+    )
 
 @post("destroy")
 def destroy_all():
@@ -55,29 +79,7 @@ def destroy_all():
     )
     print('Banco de dados destruído\n')
 
-#call it once just if you need to initiate de database
-def initiateDb():
-    destroy_all()
-    musics = stemm.get_term_list()
-    for music in musics:
-        create_music(music['name'], music['singer'])
-        for term in music['name_terms']:
-            create_term(term)
-            create_associate(term, 0, music['name'], music['singer'])
-        for term in music['singer'].split():
-            create_term(term)
-            create_associate(term, 1, music['name'], music['singer'])
-        for term in music['terms']:
-            create_term(term)
-            create_associate(term, 2, music['name'], music['singer'])
-    print('Banco de Dados criado com sucesso!')
-
 
 if __name__ == "__main__":
-    # initiateDb() # it is commented to avoid initialize already initialied DB
     run(port=8080)
-    # example.destroy_all()
-    # print(create_music('Love Story', 'Taylor Swift'))
-    # print(get_musics())
-    # print("Sucesso")
-    # example.close()
+    close()

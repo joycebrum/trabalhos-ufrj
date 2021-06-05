@@ -1,5 +1,5 @@
 create a document
-CREATE (a:Music {name:'Love Story', singer:'Taylor Swift'}) RETURN a
+CREATE (a:Music {name:'Love Story'}) RETURN a
 
 create a term
 CREATE (t:Term {value:'story'}) RETURN t
