@@ -23,9 +23,9 @@ def get_search():
 
 @get("/lyrics/<name>/<singer>")
 def get_lyrics(name, singer):
-    results = db.lyrics(name, singer)
+    result = db.get_lyric(name, singer)
     response.content_type = "application/json"
-    return json.dumps([{"lyrics": row } for row in results])
+    return json.dumps(result)
 
 if __name__ == "__main__":
     run(port=8080)

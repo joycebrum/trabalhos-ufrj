@@ -1,7 +1,7 @@
 import glob, os, re
 from nltk.stem.lancaster import LancasterStemmer
 
-def generate_tokens(music, separators):
+def separate(music, separators):
     tokens = re.split('|'.join(separators), music)
     return [t for t in tokens if t]
 
@@ -14,24 +14,19 @@ def clean_separators(separators):
 def remove_stop_words(terms, stopwords):
     return [term for term in terms if term not in stopwords]
 
-# function to get unique values
-def unique(list1):
-    # insert the list to the set
-    list_set = set(list1)
-    # convert the set to the list
-    return list(list_set)
-
 def stemming(terms):
     st = LancasterStemmer()
-    return unique([st.stem(term) for term in terms])
+    return [st.stem(term) for term in terms]
 
-
-def pre_process(string):
+def generate_tokens(string):
     stopwords = ['of', 'the', 'a', 'an', 'on', 'in', 'out', 'under', 'am', 'is', 'are', 'was', 'were', 'm', 're', 'll', 's', 've', 't', 'and', 
     'oh', 'to', 'but', 'yeah']
     separators = clean_separators([' ',',','.','!','?',':',';','/','-','\\n', '\'', '\"', '\(', '\)'])
-    terms = generate_tokens(string.lower(), separators)
-    terms = remove_stop_words(terms, stopwords)
+    terms = separate(string.lower(), separators)
+    return remove_stop_words(terms, stopwords)
+
+def pre_process(string):
+    terms = generate_tokens(string)
     return stemming(terms)
 
 def get_term_list():

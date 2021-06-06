@@ -89,7 +89,7 @@
                     function (data) {
                         var t = $("div#details").empty();
                         if (!data) return;
-                        $("<p>" + data[0].lyrics + "</p>").appendTo(t)
+                        $("<p>" + data + "</p>").appendTo(t)
                     }, "json");
             return false;
         }
