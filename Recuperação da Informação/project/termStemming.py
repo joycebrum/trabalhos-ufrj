@@ -11,10 +11,8 @@ def clean_separators(separators):
             separators[i]= "\\" + separators[i]
     return separators
 
-def remove_stop_words(music, stopwords):
-    remove = '|'.join(stopwords) 
-    regex = re.compile(r'\b('+remove+r')\b', flags=re.IGNORECASE)
-    return regex.sub("", music)
+def remove_stop_words(terms, stopwords):
+    return [term for term in terms if term not in stopwords]
 
 # function to get unique values
 def unique(list1):
@@ -29,11 +27,11 @@ def stemming(terms):
 
 
 def pre_process(string):
-    stopwords = ['of', 'the', 'a', 'an', 'on', 'in', 'out', 'under', 'am', 'is', 'are', 'was', 'were', '\'m', '\'re', '\'ll', '\'s', '\'ve', 'and', 
-    'oh', 'oh-oh', 'to', 'but', '\'', 'yeah']
+    stopwords = ['of', 'the', 'a', 'an', 'on', 'in', 'out', 'under', 'am', 'is', 'are', 'was', 'were', 'm', 're', 'll', 's', 've', 't', 'and', 
+    'oh', 'to', 'but', 'yeah']
     separators = clean_separators([' ',',','.','!','?',':',';','/','-','\\n', '\'', '\"', '\(', '\)'])
-    terms = remove_stop_words(string.lower(), stopwords)
-    terms = generate_tokens(terms, separators)
+    terms = generate_tokens(string.lower(), separators)
+    terms = remove_stop_words(terms, stopwords)
     return stemming(terms)
 
 def get_term_list():
