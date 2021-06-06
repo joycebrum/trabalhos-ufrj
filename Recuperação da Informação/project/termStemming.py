@@ -20,7 +20,7 @@ def stemming(terms):
 
 def generate_tokens(string):
     stopwords = ['of', 'the', 'a', 'an', 'on', 'in', 'out', 'under', 'am', 'is', 'are', 'was', 'were', 'm', 're', 'll', 's', 've', 't', 'and', 
-    'oh', 'to', 'but', 'yeah']
+    'oh', 'to', 'but', 'yeah', 'ay', 'ayy']
     separators = clean_separators([' ',',','.','!','?',':',';','/','-','\\n', '\'', '\"', '\(', '\)'])
     terms = separate(string.lower(), separators)
     return remove_stop_words(terms, stopwords)
