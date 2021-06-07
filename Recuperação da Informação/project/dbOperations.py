@@ -8,16 +8,39 @@ def close():
     driver.close()
 
 def get_graph():
-    return graph.run(
-    "MATCH (t:Term)-[:APPEARS_IN]->(m:Music) "
-    "RETURN t, m ")
+    results = graph.run(
+        "MATCH (m:Music)-[:BELONGS_TO]->(s:Singer) "
+        "RETURN m.name as music, s.name as singer "
+        "LIMIT %s" %(100))
+    nodes = []
+    rels = []
+    i = 0
+    print(results)
+    for music, singer in results:
+        nodes.append({"name": music, "label": "movie"})
+        target = i
+        i += 1
+        singer = {"name": singer, "label": "singer"}
+        try:
+            source = nodes.index(singer)
+        except ValueError:
+            nodes.append(singer)
+            source = i
+            i += 1
+        rels.append({"source": source, "target": target})
+    return {"nodes": nodes, "links": rels}
 
 def search(q):
     return graph.run(
         "MATCH (m:Music)-[r:BELONGS_TO]->(s:Singer) "
-        "RETURN ID(m) as id, m.name as name, s.name as singer")
+        "RETURN ID(m) as id, m.name as name, s.name as singer").data()
         # "WHERE music.name =~ {title} "
         # "RETURN movie", {"title": "(?i).*" + q + ".*"})
+
+def all_musics():
+    return graph.run(
+        "MATCH (m:Music)-[r:BELONGS_TO]->(s:Singer) "
+        "RETURN ID(m) as id, m.name as name, s.name as singer").data()
 
 def get_lyric(name, singer):
     return graph.run(
@@ -30,7 +53,7 @@ def find_music(name, singer):
     ).data()
 
 def total_occurrences():
-    return graph.run("MATCH (t:Term)-[r:APPEARS_IN]->(m:Music) RETURN count(r)").evaluate()
+    return graph.run("MATCH (t:Term)-[r:APPEARS_IN]->(m:Music) RETURN count(DISTINCT r)").evaluate()
 
 def number_of_documents():
     return graph.run("MATCH (m:Music) RETURN count(m)").evaluate()
@@ -39,14 +62,14 @@ def document_len(document_id):
     return graph.run(
         "MATCH (t:Term)-[r:APPEARS_IN]->(m:Music) "
         "WHERE ID(m) = %s "
-        "RETURN count(r)" %(document_id)
+        "RETURN count(DISTINCT r)" %(document_id)
     ).evaluate()
 
 def number_documents_with_term(term):
     return graph.run(
         "MATCH (t:Term)-[r:APPEARS_IN]->(m:Music) "
         "WHERE t.value = \"%s\" "
-        "RETURN count(m)" %(term)
+        "RETURN count(DISTINCT m)" %(term)
     ).evaluate()
 
 def term_frequency_in_document(document_id, term):
@@ -92,3 +115,4 @@ def destroy_all():
     )
     print('Banco de dados destruído\n')
 
+# print(get_graph())

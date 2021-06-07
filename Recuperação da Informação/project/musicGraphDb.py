@@ -1,6 +1,7 @@
 from bottle import get, run, request, response, static_file
 import json
 import dbOperations as db
+import bm25
 
 @get("/")
 def get_index():
@@ -8,15 +9,16 @@ def get_index():
 
 @get("/graph")
 def get_graph():
-    return db.get_graph()
+    response.content_type = "application/json"
+    return json.dumps(db.get_graph())
 
 @get("/search")
 def get_search():
     try:
         q = request.query["q"]
+        results = bm25.search(q)
     except KeyError:
-        q = ''
-    results = db.search(q)
+        results = db.all_musics()
 
     response.content_type = "application/json"
     return json.dumps([{"music": { 'name': row["name"], 'singer': row['singer']}} for row in results])

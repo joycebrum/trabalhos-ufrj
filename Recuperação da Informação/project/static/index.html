@@ -16,8 +16,6 @@
 </head>
 
 <body>
-<div id="graph">
-</div>
 <div role="navigation" class="navbar navbar-default navbar-static-top">
     <div class="container">
         <div class="row">
@@ -73,6 +71,10 @@
         </div>
     </div>
 </div>
+
+
+<div id="graph">
+</div>
 <style type="text/css">
     .node { stroke: #222; stroke-width: 1.5px; }
     .node.actor { fill: #888; }
@@ -114,7 +116,7 @@
     })
 </script>
 
-<!-- <script type="text/javascript">
+<script type="text/javascript">
     var width = 800, height = 800;
 
     var force = d3.layout.force()
@@ -155,6 +157,6 @@
                     .attr("cy", function(d) { return d.y; });
         });
     });
-</script> -->
+</script>
 </body>
 </html>
