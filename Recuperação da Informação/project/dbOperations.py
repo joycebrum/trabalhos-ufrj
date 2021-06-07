@@ -79,6 +79,13 @@ def term_frequency_in_document(document_id, term):
         "RETURN count(r)" %(document_id, term)
     ).evaluate()
 
+def term_frequency_in_document_with_relevance(document_id, term):
+    return graph.run(
+        "MATCH (t:Term)-[r:APPEARS_IN]->(m:Music) "
+        "WHERE ID(m) = %s and t.value = \"%s\" "
+        "RETURN r.relevance as relevance, count(*) as quant" %(document_id, term)
+    ).data()
+
 def create_singer(name):
     return graph.run(
         "MERGE (s:Singer {name:'%s'}) RETURN s" %(name)
@@ -114,5 +121,3 @@ def destroy_all():
         "MATCH (n) DETACH DELETE n"
     )
     print('Banco de dados destruído\n')
-
-# print(get_graph())
