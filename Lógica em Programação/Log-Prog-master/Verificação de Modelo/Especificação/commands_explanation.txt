@@ -1,0 +1,8 @@
+Para executar: 
+	nuXmv.exe -int example1
+	nuXmv -source commands example1
+	
+Verificando:
+	go_msat //inicializa
+	msat_pick_state -v // imprime o estado atual
+	msat_simulate -v -k 10 // roda 10 vezes

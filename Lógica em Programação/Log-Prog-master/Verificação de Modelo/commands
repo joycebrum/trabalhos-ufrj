@@ -1,0 +1,5 @@
+go_msat
+build_boolean_model
+bmc_setup
+bmc_pick_state
+bmc_inc_simulate -v -k 5

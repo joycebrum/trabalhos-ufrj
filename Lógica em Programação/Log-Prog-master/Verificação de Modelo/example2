@@ -1,0 +1,40 @@
+MODULE main
+VAR
+	state : { a, b, z};
+	decryp: { EaMb, EbMa, m};
+	to : { a, b, z };
+	encryp : { EaMb, EbMa, m};
+ASSIGN
+	init(state) := a;
+	init(to) := b;
+	init(decryp) := m;
+	init(encryp) := EbMa;
+	next(encryp) := case
+		encryp = EbMa & state = a & to = b : EbMa;
+		encryp = EbMa & state = z & to = b : EaMb;
+		encryp = EaMb & state = b & to = z : EaMb;
+		TRUE   			    : encryp;
+	esac;
+	next(state) := case
+		state = a : z;
+		state = b : z;
+		state = z & to = b : b;
+		state = z & to = a : a; 
+		TRUE 			   : state;
+	esac;
+	next(to) := case
+		state = a & to = b : b;
+		state = z & to = b : z;
+		state = b & to = z : z;
+		TRUE  			  : to;
+	esac;
+	next(decryp) := case
+		encryp = EbMa & state = a & to = b : EbMa;
+		encryp = EbMa & state = z & to = b : m;
+		encryp = EaMb & state = b & to = z : EaMb;
+		encryp = EaMb & state = z & to = a : m;
+		TRUE 					 : encryp;
+	esac; 
+	
+FAIRNESS
+	state = z & decryp != m;
